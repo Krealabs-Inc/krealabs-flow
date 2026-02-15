@@ -1,0 +1,121 @@
+version: "3.9"
+
+services:
+  # =============================================
+  # Next.js (DEV MODE - Hot Reload)
+  # =============================================
+  app:
+    image: node:20-alpine
+    container_name: krealabs-app-dev
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install && pnpm dev"
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-krealabs}:${POSTGRES_PASSWORD:-krealabs}@supabase-db:5432/${POSTGRES_DB:-krealabs_flow}
+      NEXT_PUBLIC_STACK_PROJECT_ID: ${NEXT_PUBLIC_STACK_PROJECT_ID}
+      NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ${NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
+      NEXT_PUBLIC_STACK_API_URL: http://localhost:8102
+      STACK_SECRET_SERVER_KEY: ${STACK_SECRET_SERVER_KEY}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # =============================================
+  # PostgreSQL
+  # =============================================
+  supabase-db:
+    image: postgres:17-alpine
+    container_name: krealabs-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-krealabs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-krealabs}
+      POSTGRES_DB: ${POSTGRES_DB:-krealabs_flow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-krealabs} -d ${POSTGRES_DB:-krealabs_flow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # =============================================
+  # Stack Auth
+  # =============================================
+  stack-auth:
+    image: stackauth/server:latest
+    container_name: krealabs-stack-auth
+    environment:
+      STACK_DATABASE_CONNECTION_STRING: postgresql://${POSTGRES_USER:-krealabs}:${POSTGRES_PASSWORD:-krealabs}@supabase-db:5432/stack_auth
+      STACK_SERVER_SECRET: ${STACK_SERVER_SECRET:-change-me}
+      STACK_CLICKHOUSE_URL: http://clickhouse:8123
+      STACK_CLICKHOUSE_ADMIN_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse-krealabs}
+      STACK_CLICKHOUSE_EXTERNAL_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse-krealabs}
+      NEXT_PUBLIC_STACK_API_URL: http://localhost:8102
+      NEXT_PUBLIC_BROWSER_STACK_API_URL: http://localhost:8102
+      NEXT_PUBLIC_STACK_DASHBOARD_URL: http://localhost:8101
+      STACK_SEED_INTERNAL_PROJECT_ALLOW_LOCALHOST: "true"
+      STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED: "true"
+      STACK_RUN_MIGRATIONS: "true"
+      STACK_RUN_SEED_SCRIPT: "true"
+    ports:
+      - "8101:8101"
+      - "8102:8102"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+    networks:
+      - internal
+
+  # =============================================
+  # ClickHouse (analytics)
+  # =============================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: krealabs-clickhouse
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: stackframe
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse-krealabs}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - internal
+
+  # =============================================
+  # Redis
+  # =============================================
+  redis:
+    image: redis:7-alpine
+    container_name: krealabs-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+  clickhouse_data:
+
+networks:
+  internal:
+    driver: bridge
