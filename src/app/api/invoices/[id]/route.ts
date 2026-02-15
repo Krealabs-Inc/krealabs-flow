@@ -12,7 +12,7 @@ import {
 import { updateInvoiceSchema } from "@/lib/validators/invoice.validator";
 import { success, error } from "@/lib/utils/api-response";
 
-const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
+const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(
   _request: NextRequest,
