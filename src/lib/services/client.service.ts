@@ -1,0 +1,151 @@
+import { db } from "@/lib/db";
+import { clients } from "@/lib/db/schema";
+import { eq, and, ilike, or, sql, desc } from "drizzle-orm";
+import { createAuditLog } from "./audit.service";
+import type {
+  CreateClientInput,
+  UpdateClientInput,
+} from "@/lib/validators/client.validator";
+
+interface ListClientsParams {
+  organizationId: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export async function listClients({
+  organizationId,
+  page = 1,
+  limit = 20,
+  search,
+}: ListClientsParams) {
+  const offset = (page - 1) * limit;
+
+  const conditions = [
+    eq(clients.organizationId, organizationId),
+    eq(clients.isActive, true),
+  ];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(clients.companyName, `%${search}%`),
+        ilike(clients.contactFirstName, `%${search}%`),
+        ilike(clients.contactLastName, `%${search}%`),
+        ilike(clients.contactEmail, `%${search}%`)
+      )!
+    );
+  }
+
+  const [data, countResult] = await Promise.all([
+    db
+      .select()
+      .from(clients)
+      .where(and(...conditions))
+      .orderBy(desc(clients.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(clients)
+      .where(and(...conditions)),
+  ]);
+
+  return {
+    data,
+    total: Number(countResult[0].count),
+    page,
+    limit,
+  };
+}
+
+export async function getClient(id: string, organizationId: string) {
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, id), eq(clients.organizationId, organizationId)));
+  return client ?? null;
+}
+
+export async function createClient(
+  input: CreateClientInput,
+  organizationId: string,
+  userId?: string
+) {
+  const [client] = await db
+    .insert(clients)
+    .values({
+      ...input,
+      organizationId,
+      tvaRate: input.tvaRate?.toString(),
+    })
+    .returning();
+
+  await createAuditLog({
+    organizationId,
+    userId,
+    action: "create",
+    entityType: "client",
+    entityId: client.id,
+    newValues: input as Record<string, unknown>,
+  });
+
+  return client;
+}
+
+export async function updateClient(
+  id: string,
+  input: UpdateClientInput,
+  organizationId: string,
+  userId?: string
+) {
+  const existing = await getClient(id, organizationId);
+  if (!existing) return null;
+
+  const [updated] = await db
+    .update(clients)
+    .set({
+      ...input,
+      tvaRate: input.tvaRate?.toString(),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(clients.id, id), eq(clients.organizationId, organizationId)))
+    .returning();
+
+  await createAuditLog({
+    organizationId,
+    userId,
+    action: "update",
+    entityType: "client",
+    entityId: id,
+    oldValues: existing as unknown as Record<string, unknown>,
+    newValues: input as Record<string, unknown>,
+  });
+
+  return updated;
+}
+
+export async function deleteClient(
+  id: string,
+  organizationId: string,
+  userId?: string
+) {
+  const existing = await getClient(id, organizationId);
+  if (!existing) return false;
+
+  await db
+    .update(clients)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(clients.id, id), eq(clients.organizationId, organizationId)));
+
+  await createAuditLog({
+    organizationId,
+    userId,
+    action: "delete",
+    entityType: "client",
+    entityId: id,
+  });
+
+  return true;
+}

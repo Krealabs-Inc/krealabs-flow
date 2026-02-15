@@ -1,0 +1,143 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Filter, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ProjectTable } from "@/components/projects/project-table";
+import { projectStatusLabels } from "@/types/project";
+import type { Project } from "@/types/project";
+import type { PaginatedResponse } from "@/types";
+
+export default function ProjectsPage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+  });
+
+  const fetchProjects = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "20");
+      if (search) params.set("search", search);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+
+      try {
+        const res = await fetch(`/api/projects?${params}`);
+        const text = await res.text();
+        if (!text) { setLoading(false); return; }
+        const data: PaginatedResponse<Project> = JSON.parse(text);
+        if (data.success) {
+          setProjects(data.data);
+          setPagination(data.pagination);
+        }
+      } catch {
+        // DB not ready
+      }
+      setLoading(false);
+    },
+    [search, statusFilter]
+  );
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Supprimer ce projet ?")) return;
+    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    fetchProjects(pagination.page);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Projets</h1>
+          <p className="text-muted-foreground">
+            {pagination.total} projet(s)
+          </p>
+        </div>
+        <Button onClick={() => router.push("/projects/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nouveau projet
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un projet..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-52">
+            <Filter className="mr-2 h-4 w-4" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            {Object.entries(projectStatusLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
+        </div>
+      ) : (
+        <ProjectTable projects={projects} onDelete={handleDelete} />
+      )}
+
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pagination.page <= 1}
+            onClick={() => fetchProjects(pagination.page - 1)}
+          >
+            Précédent
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {pagination.page} / {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pagination.page >= pagination.totalPages}
+            onClick={() => fetchProjects(pagination.page + 1)}
+          >
+            Suivant
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
