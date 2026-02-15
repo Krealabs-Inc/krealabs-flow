@@ -57,7 +57,7 @@ services:
   # Accessible sur http://localhost:8082
   # =============================================
   supabase-studio:
-    image: supabase/studio:2026.02.09-sha-18cc6f8
+    image: supabase/studio:latest
     environment:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       SUPABASE_URL: http://localhost:8082
@@ -78,7 +78,7 @@ services:
   # Supabase pg-meta (API metadata pour Studio)
   # =============================================
   supabase-meta:
-    image: supabase/postgres-meta:v0.84.2
+    image: supabase/postgres-meta:v0.95.2
     environment:
       PG_META_PORT: 8080
       PG_META_DB_HOST: supabase-db
@@ -97,7 +97,7 @@ services:
   # ClickHouse (analytics pour Stack Auth)
   # =============================================
   clickhouse:
-    image: clickhouse/clickhouse-server:25.10
+    image: clickhouse/clickhouse-server:latest
     environment:
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: stackframe
