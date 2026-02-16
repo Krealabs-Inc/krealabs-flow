@@ -525,8 +525,9 @@ export async function convertQuoteToInvoice(
     );
   }
 
-  // Update quote status to converted
-  await updateQuoteStatus(id, "converted", organizationId, userId);
+  // Update quote status based on invoice type
+  const newQuoteStatus = hasDeposit ? "partially_invoiced" : "fully_invoiced";
+  await updateQuoteStatus(id, newQuoteStatus, organizationId, userId);
 
   await createAuditLog({
     organizationId,
@@ -534,7 +535,12 @@ export async function convertQuoteToInvoice(
     action: "convert",
     entityType: "quote",
     entityId: id,
-    newValues: { invoiceId: invoice.id, invoiceNumber },
+    newValues: {
+      invoiceId: invoice.id,
+      invoiceNumber,
+      invoiceType: invoiceType,
+      quoteStatus: newQuoteStatus,
+    },
   });
 
   return invoice;
