@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-progress": "^1.1.8",
     "@react-pdf/renderer": "^4.3.2",
     "@stackframe/stack": "^2.8.67",
     "class-variance-authority": "^0.7.1",
