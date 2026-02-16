@@ -10,6 +10,8 @@ import {
   Trash2,
   FileText,
   AlertTriangle,
+  Plus,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { PaymentDialog } from "@/components/invoices/payment-dialog";
+import { WorkflowTracker } from "@/components/shared/workflow-tracker";
 import { invoiceTypeLabels, type Invoice, type InvoiceType } from "@/types/invoice";
 import type { ApiResponse, Client } from "@/types";
 
@@ -34,7 +37,12 @@ const fmt = (val: string | null) =>
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [invoice, setInvoice] = useState<Invoice & { payments?: Array<{ id: string; amount: string; paymentDate: string; method: string; reference: string | null }> } | null>(null);
+  const [invoice, setInvoice] = useState<(Invoice & {
+    payments?: Array<{ id: string; amount: string; paymentDate: string; method: string; reference: string | null }>;
+    relatedQuote?: any;
+    relatedParentInvoice?: any;
+    relatedFinalInvoice?: any;
+  }) | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
@@ -64,6 +72,21 @@ export default function InvoiceDetailPage() {
       router.push("/invoices");
       return;
     }
+    if (action === "create_final") {
+      if (!confirm("Créer la facture de solde pour le restant ?")) return;
+      const res = await fetch(`/api/invoices/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_final" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        router.push(`/invoices/${data.data.id}`);
+      } else {
+        alert(data.error || "Erreur lors de la création de la facture de solde");
+      }
+      return;
+    }
 
     const res = await fetch(`/api/invoices/${params.id}`, {
       method: "PUT",
@@ -73,6 +96,28 @@ export default function InvoiceDetailPage() {
     const data = await res.json();
     if (data.success) {
       setInvoice(data.data);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    try {
+      const res = await fetch(`/api/pdf/download?type=invoice&id=${params.id}`);
+      if (!res.ok) {
+        alert("Erreur lors du téléchargement du PDF");
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture-${invoice?.invoiceNumber || params.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Erreur lors du téléchargement du PDF");
     }
   }
 
@@ -148,6 +193,20 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Télécharger PDF
+          </Button>
+          {invoice.type === "deposit" &&
+           (invoice.status === "paid" || invoice.status === "partially_paid") && (
+            <Button onClick={() => handleAction("create_final")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Créer facture de solde
+            </Button>
+          )}
           {invoice.status === "draft" && (
             <Button onClick={() => handleAction("send")}>
               <Send className="mr-2 h-4 w-4" />
@@ -194,6 +253,24 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Workflow Tracker */}
+      <WorkflowTracker
+        document={{
+          id: invoice.id,
+          type: "invoice",
+          status: invoice.status,
+          invoiceType: invoice.type,
+          quoteId: invoice.quoteId,
+          parentInvoiceId: invoice.parentInvoiceId,
+          invoiceNumber: invoice.invoiceNumber,
+          totalTtc: invoice.totalTtc,
+          amountPaid: invoice.amountPaid,
+        }}
+        relatedQuote={invoice.relatedQuote}
+        relatedParentInvoice={invoice.relatedParentInvoice}
+        relatedFinalInvoice={invoice.relatedFinalInvoice}
+      />
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-4">
