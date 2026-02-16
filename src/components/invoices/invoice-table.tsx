@@ -25,6 +25,7 @@ import {
   CreditCard,
   XCircle,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { invoiceTypeLabels, type Invoice, type InvoiceType } from "@/types/invoice";
@@ -159,6 +160,18 @@ export function InvoiceTable({
                           Enregistrer un paiement
                         </DropdownMenuItem>
                       )}
+                      {inv.type === "deposit" &&
+                        (inv.status === "paid" || inv.status === "partially_paid") && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAction?.(inv.id, "create_final");
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Créer facture de solde
+                          </DropdownMenuItem>
+                        )}
                       {inv.status !== "cancelled" &&
                         inv.status !== "paid" && (
                           <>
