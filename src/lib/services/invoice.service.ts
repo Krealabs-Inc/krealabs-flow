@@ -135,7 +135,7 @@ export async function listInvoices({
 }
 
 // ---------------------------------------------------------------------------
-// Get with lines and payments
+// Get with lines, payments and related documents
 // ---------------------------------------------------------------------------
 
 export async function getInvoice(id: string, organizationId: string) {
@@ -147,16 +147,58 @@ export async function getInvoice(id: string, organizationId: string) {
     );
   if (!invoice) return null;
 
-  const [lines, paymentsList] = await Promise.all([
-    db
-      .select()
-      .from(invoiceLines)
-      .where(eq(invoiceLines.invoiceId, id))
-      .orderBy(invoiceLines.sortOrder),
-    db.select().from(payments).where(eq(payments.invoiceId, id)),
-  ]);
+  const lines = await db
+    .select()
+    .from(invoiceLines)
+    .where(eq(invoiceLines.invoiceId, id))
+    .orderBy(invoiceLines.sortOrder);
 
-  return { ...invoice, lines, payments: paymentsList };
+  const paymentsList = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.invoiceId, id));
+
+  // Get related quote if exists
+  let relatedQuote = null;
+  if (invoice.quoteId) {
+    const { quotes } = await import("@/lib/db/schema");
+    [relatedQuote] = await db
+      .select()
+      .from(quotes)
+      .where(eq(quotes.id, invoice.quoteId));
+  }
+
+  // Get parent invoice if exists (for final invoices)
+  let relatedParent = null;
+  if (invoice.parentInvoiceId) {
+    [relatedParent] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, invoice.parentInvoiceId));
+  }
+
+  // Get final invoice if this is a deposit
+  let relatedFinal = null;
+  if (invoice.type === "deposit") {
+    [relatedFinal] = await db
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.parentInvoiceId, id),
+          eq(invoices.type, "final")
+        )
+      );
+  }
+
+  return {
+    ...invoice,
+    lines,
+    payments: paymentsList,
+    relatedQuote,
+    relatedParentInvoice: relatedParent,
+    relatedFinalInvoice: relatedFinal,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -508,22 +550,50 @@ export async function createFinalInvoice(
     throw new Error("Cette facture n'est pas un acompte");
   }
 
+  if (deposit.status !== "paid" && deposit.status !== "partially_paid") {
+    throw new Error("L'acompte doit être payé avant de créer la facture de solde");
+  }
+
+  // Check if a final invoice already exists for this deposit
+  const [existing] = await db
+    .select()
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.parentInvoiceId, depositInvoiceId),
+        eq(invoices.type, "final")
+      )
+    );
+
+  if (existing) {
+    throw new Error("Une facture de solde existe déjà pour cet acompte");
+  }
+
   // Find the original quote to get full amounts
   const quoteId = deposit.quoteId;
   if (!quoteId) {
     throw new Error("Impossible de trouver le devis d'origine");
   }
 
+  // Get the quote to calculate the remaining amount
+  const { getQuote } = await import("./quote.service");
+  const quote = await getQuote(quoteId, organizationId);
+  if (!quote) {
+    throw new Error("Devis d'origine introuvable");
+  }
+
   const invoiceNumber = await generateInvoiceNumber(organizationId);
   const depositTtc = parseFloat(deposit.totalTtc ?? "0");
+  const quoteTotalTtc = parseFloat(quote.totalTtc ?? "0");
 
-  // Get total from quote by looking at original amounts
-  // The deposit invoice totalTtc is a fraction — reverse engineer the full amount
-  // Use the lines from the deposit to compute the full amount
-  // Alternatively, look at the quote total. For simplicity: total = deposit / factor
+  // Calculate remaining amounts
+  const remainingTtc = quoteTotalTtc - depositTtc;
+  const depositPercent = quote.depositPercent ? parseFloat(quote.depositPercent) : 0;
+  const remainingPercent = 100 - depositPercent;
+  const factor = remainingPercent / 100;
 
-  // Since we need the remaining, calculate from the deposit's parent context
-  // Simplification: get all invoice lines from the deposit and scale back
+  const remainingSubtotalHt = parseFloat(quote.subtotalHt ?? "0") * factor;
+  const remainingTva = parseFloat(quote.totalTva ?? "0") * factor;
 
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
@@ -537,31 +607,52 @@ export async function createFinalInvoice(
       quoteId: deposit.quoteId,
       invoiceNumber,
       reference: deposit.reference
-        ? `${deposit.reference} (solde)`
+        ? `${deposit.reference} - Solde`
         : "Facture de solde",
       type: "final",
       status: "draft",
       issueDate: new Date().toISOString().split("T")[0],
       dueDate: dueDate.toISOString().split("T")[0],
+      subtotalHt: remainingSubtotalHt.toFixed(2),
+      totalTva: remainingTva.toFixed(2),
+      totalTtc: remainingTtc.toFixed(2),
+      discountPercent: quote.discountPercent,
+      discountAmount: quote.discountAmount ? (parseFloat(quote.discountAmount) * factor).toFixed(2) : "0",
+      amountDue: remainingTtc.toFixed(2),
       parentInvoiceId: depositInvoiceId,
+      introduction: quote.introduction,
+      footerNotes: `Facture de solde suite à l'acompte ${deposit.invoiceNumber} de ${depositTtc.toFixed(2)} € TTC`,
       createdBy: userId,
     })
     .returning();
 
-  // Insert a single line for the remaining amount
-  const remaining = parseFloat(deposit.totalTtc ?? "0"); // Will need proper calculation
-  await db.insert(invoiceLines).values({
-    invoiceId: finalInvoice.id,
-    sortOrder: 0,
-    description: `Solde restant (déduction de l'acompte ${deposit.invoiceNumber})`,
-    quantity: "1",
-    unit: "forfait",
-    unitPriceHt: "0", // To be filled manually
-    tvaRate: "20",
-    totalHt: "0",
-    totalTva: "0",
-    totalTtc: "0",
-  });
+  // Copy lines from quote with remaining quantities
+  if (quote.lines.length > 0) {
+    await db.insert(invoiceLines).values(
+      quote.lines
+        .filter((l) => !l.isOptional)
+        .map((line, index) => {
+          const lineRemainingHt = parseFloat(line.totalHt ?? "0") * factor;
+          const lineRemainingTva = parseFloat(line.totalTva ?? "0") * factor;
+          const lineRemainingTtc = parseFloat(line.totalTtc ?? "0") * factor;
+
+          return {
+            invoiceId: finalInvoice.id,
+            sortOrder: line.sortOrder ?? index,
+            isSection: line.isSection,
+            description: line.description,
+            details: line.details,
+            quantity: line.isSection ? "0" : String(parseFloat(line.quantity ?? "1") * factor),
+            unit: line.unit,
+            unitPriceHt: line.unitPriceHt,
+            tvaRate: line.tvaRate,
+            totalHt: lineRemainingHt.toFixed(2),
+            totalTva: lineRemainingTva.toFixed(2),
+            totalTtc: lineRemainingTtc.toFixed(2),
+          };
+        })
+    );
+  }
 
   await createAuditLog({
     organizationId,
@@ -573,8 +664,15 @@ export async function createFinalInvoice(
       type: "final",
       depositInvoiceId,
       depositAmount: depositTtc,
+      remainingAmount: remainingTtc,
     },
   });
+
+  // Update quote status to fully_invoiced
+  if (quoteId) {
+    const { updateQuoteStatus } = await import("./quote.service");
+    await updateQuoteStatus(quoteId, "fully_invoiced", organizationId, userId);
+  }
 
   return getInvoice(finalInvoice.id, organizationId);
 }
