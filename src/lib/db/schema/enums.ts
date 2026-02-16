@@ -7,7 +7,8 @@ export const quoteStatusEnum = pgEnum("quote_status", [
   "accepted",
   "rejected",
   "expired",
-  "converted",
+  "partially_invoiced",  // Acompte créé, solde en attente
+  "fully_invoiced",      // Toutes les factures créées (acompte + solde OU facture complète)
 ]);
 
 export const invoiceStatusEnum = pgEnum("invoice_status", [
