@@ -85,6 +85,22 @@ export default function InvoicesPage() {
 
     if (action === "cancel" && !confirm("Annuler cette facture ?")) return;
 
+    if (action === "create_final") {
+      if (!confirm("Créer la facture de solde pour le restant ?")) return;
+      const res = await fetch(`/api/invoices/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_final" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        router.push(`/invoices/${data.data.id}`);
+      } else {
+        alert(data.error || "Erreur lors de la création de la facture de solde");
+      }
+      return;
+    }
+
     await fetch(`/api/invoices/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
