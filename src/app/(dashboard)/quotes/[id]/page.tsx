@@ -11,6 +11,7 @@ import {
   Trash2,
   ArrowRightLeft,
   XCircle,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { QuoteStatusBadge } from "@/components/quotes/quote-status-badge";
+import { WorkflowTracker } from "@/components/shared/workflow-tracker";
 import type { Quote } from "@/types/quote";
 import type { ApiResponse, Client } from "@/types";
 
@@ -82,6 +84,28 @@ export default function QuoteDetailPage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    try {
+      const res = await fetch(`/api/pdf/download?type=quote&id=${params.id}`);
+      if (!res.ok) {
+        alert("Erreur lors du téléchargement du PDF");
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `devis-${quote?.quoteNumber || params.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Erreur lors du téléchargement du PDF");
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -125,6 +149,13 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Télécharger PDF
+          </Button>
           {quote.status === "draft" && (
             <>
               <Button
@@ -215,6 +246,17 @@ export default function QuoteDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Workflow Tracker */}
+      <WorkflowTracker
+        document={{
+          id: quote.id,
+          type: "quote",
+          status: quote.status,
+          quoteNumber: quote.quoteNumber,
+          totalTtc: quote.totalTtc,
+        }}
+      />
 
       {/* Introduction */}
       {quote.introduction && (
