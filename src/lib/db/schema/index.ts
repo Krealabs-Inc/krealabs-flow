@@ -11,3 +11,5 @@ export * from "./templates";
 export * from "./audit-logs";
 export * from "./deadlines";
 export * from "./notifications";
+export * from "./declarations";
+export * from "./fiscal";

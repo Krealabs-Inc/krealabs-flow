@@ -12,6 +12,7 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   legalName: varchar("legal_name", { length: 255 }),
+  siren: varchar("siren", { length: 9 }),
   siret: varchar("siret", { length: 14 }),
   tvaNumber: varchar("tva_number", { length: 20 }),
 
@@ -37,6 +38,7 @@ export const organizations = pgTable("organizations", {
   nextInvoiceNumber: integer("next_invoice_number").default(1),
   nextQuoteNumber: integer("next_quote_number").default(1),
 
+  accountHolder: varchar("account_holder", { length: 255 }),
   bankName: varchar("bank_name", { length: 255 }),
   iban: varchar("iban", { length: 34 }),
   bic: varchar("bic", { length: 11 }),
