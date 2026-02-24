@@ -1,161 +1,304 @@
-
+import path from "path";
 import {
   Document,
   Page,
   Text,
   View,
   StyleSheet,
+  Image,
 } from "@react-pdf/renderer";
+
+// Logo path resolved at server runtime
+const LOGO_PATH = path.join(process.cwd(), "public", "Logo Krealabs.png");
+
+const C = {
+  brand: "#8B89F7",
+  text: "#1C1C1E",
+  secondary: "#6B7280",
+  muted: "#9CA3AF",
+  calloutBg: "#F3F2F0",
+  tableHeaderBg: "#F7F6F3",
+  border: "#E5E4E1",
+  borderLight: "#F0EFED",
+  optionalBg: "#FAFAFA",
+  red: "#dc2626",
+  blue: "#2563eb",
+};
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontSize: 10,
+    paddingTop: 40,
+    paddingBottom: 60,
+    paddingHorizontal: 44,
+    fontSize: 9,
     fontFamily: "Helvetica",
+    color: C.text,
+    backgroundColor: "#FFFFFF",
   },
+  // ── Header ──────────────────────────────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30,
-  },
-  companyInfo: {
-    maxWidth: 200,
-  },
-  companyName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  clientInfo: {
-    maxWidth: 200,
-    textAlign: "right",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 10,
-    color: "#666",
+    alignItems: "flex-start",
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
+  logo: {
+    width: 110,
+    height: 30,
   },
-  infoBox: {
-    padding: 8,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 4,
-    width: "30%",
+  headerRight: {
+    alignItems: "flex-end",
   },
-  infoLabel: {
-    fontSize: 8,
-    color: "#666",
+  docType: {
+    fontSize: 7,
+    color: C.secondary,
+    marginBottom: 3,
+    letterSpacing: 1,
+  },
+  docTitle: {
+    fontSize: 15,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
     marginBottom: 2,
   },
-  infoValue: {
-    fontSize: 11,
-    fontWeight: "bold",
+  docRef: {
+    fontSize: 8,
+    color: C.secondary,
   },
-  table: {
-    marginBottom: 20,
-  },
-  tableHeader: {
+  // ── Meta boxes ──────────────────────────────────────
+  metaRow: {
     flexDirection: "row",
-    backgroundColor: "#1a1a1a",
-    color: "#fff",
+    gap: 8,
+    marginBottom: 18,
+  },
+  metaBox: {
+    flex: 1,
+    backgroundColor: C.calloutBg,
     padding: 8,
     borderRadius: 4,
+  },
+  metaLabel: {
+    fontSize: 7,
+    color: C.secondary,
+    marginBottom: 3,
+  },
+  metaValue: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
+  },
+  // ── Address columns ─────────────────────────────────
+  addressRow: {
+    flexDirection: "row",
+    gap: 20,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  addressBlock: {
+    flex: 1,
+  },
+  addressLabel: {
+    fontSize: 6.5,
+    color: C.secondary,
+    marginBottom: 5,
+    letterSpacing: 0.5,
+  },
+  addressName: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+  },
+  addressLine: {
+    fontSize: 8.5,
+    color: C.text,
+    lineHeight: 1.5,
+  },
+  addressMuted: {
+    fontSize: 7.5,
+    color: C.secondary,
+    marginTop: 3,
+  },
+  // ── Table ───────────────────────────────────────────
+  table: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 4,
+  },
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: C.tableHeaderBg,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  tableHeaderCell: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: C.secondary,
   },
   tableRow: {
     flexDirection: "row",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    padding: 8,
+    borderBottomColor: C.borderLight,
   },
-  optionalRow: {
-    backgroundColor: "#fafafa",
+  tableRowOptional: {
+    backgroundColor: C.optionalBg,
+  },
+  tableRowLast: {
+    borderBottomWidth: 0,
   },
   sectionRow: {
-    padding: 8,
-    paddingTop: 12,
-    fontWeight: "bold",
-    fontSize: 11,
-    borderBottomWidth: 2,
-    borderBottomColor: "#ddd",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: C.calloutBg,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  sectionText: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
   },
   colDesc: { flex: 3 },
-  colQty: { width: 60, textAlign: "right" },
-  colUnit: { width: 50, textAlign: "center" },
-  colPrice: { width: 80, textAlign: "right" },
-  colTotal: { width: 80, textAlign: "right" },
-  totals: {
+  colQty: { width: 42, textAlign: "right" },
+  colUnit: { width: 42, textAlign: "center" },
+  colPrice: { width: 72, textAlign: "right" },
+  colTotal: { width: 72, textAlign: "right" },
+  cellText: { fontSize: 9, color: C.text },
+  cellSubtext: { fontSize: 7.5, color: C.secondary, marginTop: 2 },
+  cellOptionalBadge: {
+    fontSize: 7,
+    color: C.blue,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1,
+  },
+  // ── Totals ──────────────────────────────────────────
+  totalsBlock: {
     alignItems: "flex-end",
-    marginTop: 10,
+    marginBottom: 20,
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingVertical: 3,
+    paddingVertical: 2,
   },
   totalLabel: {
-    width: 120,
+    width: 130,
     textAlign: "right",
-    paddingRight: 10,
-    color: "#666",
+    paddingRight: 12,
+    color: C.secondary,
+    fontSize: 9,
   },
   totalValue: {
-    width: 100,
+    width: 90,
     textAlign: "right",
-    fontWeight: "bold",
-  },
-  totalTtc: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginTop: 4,
-    paddingTop: 4,
-    borderTopWidth: 2,
-    borderTopColor: "#1a1a1a",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 40,
-    left: 40,
-    right: 40,
-    fontSize: 8,
-    color: "#999",
-    textAlign: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 10,
-  },
-  textSmall: {
     fontSize: 9,
-    color: "#666",
   },
-  terms: {
-    marginTop: 20,
+  totalDivider: {
+    width: 222,
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 5,
+  },
+  totalTtcRow: {
+    flexDirection: "row",
+    paddingVertical: 4,
+  },
+  totalTtcLabel: {
+    width: 130,
+    textAlign: "right",
+    paddingRight: 12,
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
+  },
+  totalTtcValue: {
+    width: 90,
+    textAlign: "right",
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
+  },
+  // ── Callout box ─────────────────────────────────────
+  callout: {
+    flexDirection: "row",
+    backgroundColor: C.calloutBg,
+    borderRadius: 6,
     padding: 10,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 4,
-    fontSize: 8,
-    color: "#666",
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: C.brand,
+  },
+  calloutIcon: {
+    fontSize: 11,
+    marginRight: 8,
+    width: 16,
+  },
+  calloutContent: {
+    flex: 1,
+  },
+  calloutTitle: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: C.text,
+    marginBottom: 3,
+  },
+  calloutText: {
+    fontSize: 8.5,
+    color: C.text,
+    lineHeight: 1.6,
+  },
+  // ── Signatures ──────────────────────────────────────
+  signatureSection: {
+    marginBottom: 10,
+  },
+  signatureRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 10,
   },
   signatureBox: {
-    marginTop: 30,
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  signatureArea: {
-    width: 200,
+    flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 4,
+    borderColor: C.border,
+    borderRadius: 6,
     padding: 10,
-    minHeight: 80,
+    minHeight: 90,
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: C.secondary,
+    marginBottom: 4,
+  },
+  signatureNote: {
+    fontSize: 7.5,
+    color: C.muted,
+    marginTop: 4,
+    fontFamily: "Helvetica-Oblique",
+  },
+  // ── Footer ──────────────────────────────────────────
+  footer: {
+    position: "absolute",
+    bottom: 28,
+    left: 44,
+    right: 44,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    paddingTop: 8,
+  },
+  footerText: {
+    fontSize: 7,
+    color: C.muted,
+    textAlign: "center",
   },
 });
 
@@ -164,6 +307,9 @@ const fmt = (val: string | number | null) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }) + " \u20AC";
+
+const fmtDate = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
 interface QuotePdfProps {
   quote: {
@@ -216,181 +362,252 @@ interface QuotePdfProps {
 }
 
 export function QuotePdf({ quote, organization, client }: QuotePdfProps) {
+  const lines = quote.lines ?? [];
+  const hasDiscount = parseFloat(quote.discountPercent ?? "0") > 0;
+  const hasDeposit = parseFloat(quote.depositPercent ?? "0") > 0;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+        {/* ── Header ────────────────────────────────────── */}
         <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>{organization.name}</Text>
-            {organization.addressLine1 && (
-              <Text>{organization.addressLine1}</Text>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={LOGO_PATH} style={styles.logo} />
+          <View style={styles.headerRight}>
+            <Text style={styles.docType}>DEVIS</Text>
+            <Text style={styles.docTitle}>{quote.quoteNumber}</Text>
+            {quote.reference && (
+              <Text style={styles.docRef}>Réf : {quote.reference}</Text>
             )}
-            {organization.postalCode && (
-              <Text>
+          </View>
+        </View>
+
+        {/* ── Meta boxes ────────────────────────────────── */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaBox}>
+            <Text style={styles.metaLabel}>{"Date d'émission"}</Text>
+            <Text style={styles.metaValue}>{fmtDate(quote.issueDate)}</Text>
+          </View>
+          <View style={styles.metaBox}>
+            <Text style={styles.metaLabel}>{"Valable jusqu'au"}</Text>
+            <Text style={styles.metaValue}>{fmtDate(quote.validityDate)}</Text>
+          </View>
+          <View style={styles.metaBox}>
+            <Text style={styles.metaLabel}>Total TTC</Text>
+            <Text style={styles.metaValue}>{fmt(quote.totalTtc)}</Text>
+          </View>
+        </View>
+
+        {/* ── Addresses ─────────────────────────────────── */}
+        <View style={styles.addressRow}>
+          <View style={styles.addressBlock}>
+            <Text style={styles.addressLabel}>ÉMETTEUR</Text>
+            <Text style={styles.addressName}>{organization.name}</Text>
+            {organization.legalName && (
+              <Text style={styles.addressLine}>{organization.legalName}</Text>
+            )}
+            {organization.addressLine1 && (
+              <Text style={styles.addressLine}>{organization.addressLine1}</Text>
+            )}
+            {(organization.postalCode || organization.city) && (
+              <Text style={styles.addressLine}>
                 {organization.postalCode} {organization.city}
               </Text>
             )}
-            {organization.phone && <Text>{organization.phone}</Text>}
-            {organization.email && <Text>{organization.email}</Text>}
-            {organization.siret && (
-              <Text style={styles.textSmall}>SIRET : {organization.siret}</Text>
+            {organization.phone && (
+              <Text style={styles.addressLine}>{organization.phone}</Text>
+            )}
+            {organization.email && (
+              <Text style={styles.addressLine}>{organization.email}</Text>
+            )}
+            {(organization.siret || organization.tvaNumber) && (
+              <Text style={styles.addressMuted}>
+                {organization.siret ? `SIRET : ${organization.siret}` : ""}
+                {organization.siret && organization.tvaNumber ? "   " : ""}
+                {organization.tvaNumber ? `TVA : ${organization.tvaNumber}` : ""}
+              </Text>
             )}
           </View>
-          <View style={styles.clientInfo}>
-            <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
-              {client.companyName}
+          <View style={styles.addressBlock}>
+            <Text style={styles.addressLabel}>DESTINATAIRE</Text>
+            <Text style={styles.addressName}>
+              {client.companyName ??
+                `${client.contactFirstName} ${client.contactLastName}`}
             </Text>
-            {client.contactFirstName && (
-              <Text>
+            {client.companyName && client.contactFirstName && (
+              <Text style={styles.addressLine}>
                 {client.contactFirstName} {client.contactLastName}
               </Text>
             )}
-            {client.addressLine1 && <Text>{client.addressLine1}</Text>}
-            {client.postalCode && (
-              <Text>
+            {client.addressLine1 && (
+              <Text style={styles.addressLine}>{client.addressLine1}</Text>
+            )}
+            {(client.postalCode || client.city) && (
+              <Text style={styles.addressLine}>
                 {client.postalCode} {client.city}
+              </Text>
+            )}
+            {(client.siret || client.tvaNumber) && (
+              <Text style={styles.addressMuted}>
+                {client.siret ? `SIRET : ${client.siret}` : ""}
+                {client.siret && client.tvaNumber ? "   " : ""}
+                {client.tvaNumber ? `TVA : ${client.tvaNumber}` : ""}
               </Text>
             )}
           </View>
         </View>
 
-        {/* Title */}
-        <Text style={styles.title}>DEVIS {quote.quoteNumber}</Text>
-        {quote.reference && (
-          <Text style={styles.subtitle}>Réf : {quote.reference}</Text>
-        )}
-
-        {/* Info boxes */}
-        <View style={styles.infoRow}>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Date d&apos;émission</Text>
-            <Text style={styles.infoValue}>
-              {quote.issueDate
-                ? new Date(quote.issueDate).toLocaleDateString("fr-FR")
-                : "—"}
-            </Text>
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Validité</Text>
-            <Text style={styles.infoValue}>
-              {new Date(quote.validityDate).toLocaleDateString("fr-FR")}
-            </Text>
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Total TTC</Text>
-            <Text style={styles.infoValue}>{fmt(quote.totalTtc)}</Text>
-          </View>
-        </View>
-
-        {/* Introduction */}
+        {/* ── Introduction ──────────────────────────────── */}
         {quote.introduction && (
-          <Text style={{ marginBottom: 15 }}>{quote.introduction}</Text>
+          <Text style={{ fontSize: 9, marginBottom: 12, color: C.secondary }}>
+            {quote.introduction}
+          </Text>
         )}
 
-        {/* Lines table */}
+        {/* ── Table ─────────────────────────────────────── */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.colDesc, { color: "#fff" }]}>
-              Description
-            </Text>
-            <Text style={[styles.colQty, { color: "#fff" }]}>Qté</Text>
-            <Text style={[styles.colUnit, { color: "#fff" }]}>Unité</Text>
-            <Text style={[styles.colPrice, { color: "#fff" }]}>P.U. HT</Text>
-            <Text style={[styles.colTotal, { color: "#fff" }]}>Total HT</Text>
+          <View style={styles.tableHeaderRow}>
+            <Text style={[styles.tableHeaderCell, styles.colDesc]}>Description</Text>
+            <Text style={[styles.tableHeaderCell, styles.colQty]}>Qté</Text>
+            <Text style={[styles.tableHeaderCell, styles.colUnit]}>Unité</Text>
+            <Text style={[styles.tableHeaderCell, styles.colPrice]}>P.U. HT</Text>
+            <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total HT</Text>
           </View>
-          {quote.lines.map((line, i) =>
-            line.isSection ? (
-              <View key={i} style={styles.sectionRow}>
-                <Text>{line.description}</Text>
-              </View>
-            ) : (
+          {lines.map((line, i) => {
+            const isLast = i === lines.length - 1;
+            if (line.isSection) {
+              return (
+                <View key={i} style={styles.sectionRow}>
+                  <Text style={styles.sectionText}>{line.description}</Text>
+                </View>
+              );
+            }
+            return (
               <View
                 key={i}
                 style={[
                   styles.tableRow,
-                  line.isOptional ? styles.optionalRow : {},
+                  line.isOptional ? styles.tableRowOptional : {},
+                  isLast ? styles.tableRowLast : {},
                 ]}
               >
                 <View style={styles.colDesc}>
-                  <Text>
-                    {line.isOptional ? "[Option] " : ""}
-                    {line.description}
-                  </Text>
+                  {line.isOptional && (
+                    <Text style={styles.cellOptionalBadge}>OPTION</Text>
+                  )}
+                  <Text style={styles.cellText}>{line.description}</Text>
                   {line.details && (
-                    <Text style={styles.textSmall}>{line.details}</Text>
+                    <Text style={styles.cellSubtext}>{line.details}</Text>
                   )}
                 </View>
-                <Text style={styles.colQty}>{line.quantity}</Text>
-                <Text style={styles.colUnit}>{line.unit}</Text>
-                <Text style={styles.colPrice}>{fmt(line.unitPriceHt)}</Text>
-                <Text style={styles.colTotal}>{fmt(line.totalHt)}</Text>
+                <Text style={[styles.cellText, styles.colQty]}>{line.quantity}</Text>
+                <Text style={[styles.cellText, styles.colUnit]}>{line.unit}</Text>
+                <Text style={[styles.cellText, styles.colPrice]}>
+                  {fmt(line.unitPriceHt)}
+                </Text>
+                <Text style={[styles.cellText, styles.colTotal]}>
+                  {fmt(line.totalHt)}
+                </Text>
               </View>
-            )
-          )}
+            );
+          })}
         </View>
 
-        {/* Totals */}
-        <View style={styles.totals}>
+        {/* ── Totals ────────────────────────────────────── */}
+        <View style={styles.totalsBlock}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Sous-total HT</Text>
+            <Text style={styles.totalLabel}>Montant H.T.</Text>
             <Text style={styles.totalValue}>{fmt(quote.subtotalHt)}</Text>
           </View>
-          {parseFloat(quote.discountPercent ?? "0") > 0 && (
+          {hasDiscount && (
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: "#dc2626" }]}>
+              <Text style={[styles.totalLabel, { color: C.red }]}>
                 Remise ({quote.discountPercent}%)
               </Text>
-              <Text style={[styles.totalValue, { color: "#dc2626" }]}>
+              <Text style={[styles.totalValue, { color: C.red }]}>
                 - {fmt(quote.discountAmount)}
               </Text>
             </View>
           )}
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TVA</Text>
+            <Text style={styles.totalLabel}>TVA 20 %</Text>
             <Text style={styles.totalValue}>{fmt(quote.totalTva)}</Text>
           </View>
-          <View style={[styles.totalRow, styles.totalTtc]}>
-            <Text style={styles.totalLabel}>Total TTC</Text>
-            <Text style={styles.totalValue}>{fmt(quote.totalTtc)}</Text>
+          <View style={styles.totalDivider} />
+          <View style={styles.totalTtcRow}>
+            <Text style={styles.totalTtcLabel}>Total TTC</Text>
+            <Text style={styles.totalTtcValue}>{fmt(quote.totalTtc)}</Text>
           </View>
-          {parseFloat(quote.depositPercent ?? "0") > 0 && (
-            <View style={[styles.totalRow, { marginTop: 8 }]}>
-              <Text style={[styles.totalLabel, { color: "#2563eb" }]}>
+          {hasDeposit && (
+            <View style={[styles.totalRow, { marginTop: 6 }]}>
+              <Text style={[styles.totalLabel, { color: C.blue }]}>
                 Acompte ({quote.depositPercent}%)
               </Text>
-              <Text style={[styles.totalValue, { color: "#2563eb" }]}>
+              <Text style={[styles.totalValue, { color: C.blue }]}>
                 {fmt(quote.depositAmount)}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Terms */}
-        {quote.terms && (
-          <View style={styles.terms}>
-            <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
-              Conditions
-            </Text>
-            <Text>{quote.terms}</Text>
+        {/* ── Signatures ────────────────────────────────── */}
+        <View style={styles.signatureSection}>
+          <View style={styles.signatureRow}>
+            <View style={styles.signatureBox}>
+              <Text style={styles.signatureLabel}>Signature du prestataire</Text>
+            </View>
+            <View style={styles.signatureBox}>
+              <Text style={styles.signatureLabel}>Signature et cachet du client</Text>
+              <Text style={styles.signatureNote}>
+                {`Faire précéder de la mention "bon pour accord"`}
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
 
-        {/* Signature area */}
-        <View style={styles.signatureBox}>
-          <View style={styles.signatureArea}>
-            <Text style={styles.textSmall}>
-              Bon pour accord - Date et signature :
+        {/* ── Ownership clause callout ──────────────────── */}
+        <View style={styles.callout}>
+          <Text style={styles.calloutIcon}>i</Text>
+          <View style={styles.calloutContent}>
+            <Text style={styles.calloutText}>
+              {`${organization.name} conserve la propriété des biens vendus jusqu'au paiement effectif de l'intégralité du prix et accessoires.`}
             </Text>
           </View>
         </View>
 
-        {/* Legal footer */}
-        {organization.legalMentions && (
-          <View style={styles.footer}>
-            <Text>{organization.legalMentions}</Text>
+        {/* ── Payment conditions callout ────────────────── */}
+        {hasDeposit && (
+          <View style={styles.callout}>
+            <Text style={styles.calloutIcon}>$</Text>
+            <View style={styles.calloutContent}>
+              <Text style={styles.calloutTitle}>Conditions de règlement</Text>
+              <Text style={styles.calloutText}>
+                Paiement par virement bancaire.{"\n"}
+                Acompte de {quote.depositPercent}% à la commande, soit{" "}
+                {fmt(quote.depositAmount)}. Solde à la livraison.
+              </Text>
+            </View>
           </View>
         )}
+
+        {/* ── Terms callout ─────────────────────────────── */}
+        {quote.terms && (
+          <View style={styles.callout}>
+            <Text style={styles.calloutIcon}>*</Text>
+            <View style={styles.calloutContent}>
+              <Text style={styles.calloutTitle}>Conditions générales</Text>
+              <Text style={styles.calloutText}>{quote.terms}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ── Legal footer ─────────────────────────────── */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {organization.legalMentions ??
+              `${organization.name} — ${organization.email ?? ""} — ${organization.phone ?? ""}`}
+          </Text>
+        </View>
       </Page>
     </Document>
   );

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { QuoteTable } from "@/components/quotes/quote-table";
 import type { Quote } from "@/types/quote";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
 
 const STATUS_OPTIONS = [
@@ -39,6 +40,14 @@ export default function QuotesPage() {
     limit: 20,
     totalPages: 0,
   });
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const fetchQuotes = useCallback(
     async (page = 1, searchQuery = "", status = "all") => {
@@ -72,7 +81,23 @@ export default function QuotesPage() {
 
   async function handleAction(id: string, action: string) {
     if (action === "convert") {
-      if (!confirm("Convertir ce devis en facture ?")) return;
+      setConfirmState({
+        open: true,
+        title: "Convertir en facture",
+        description: "Voulez-vous vraiment convertir ce devis en facture ?",
+        confirmText: "Convertir",
+        variant: "default",
+        onConfirm: async () => {
+          await fetch(`/api/quotes/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          });
+          fetchQuotes(pagination.page, search, statusFilter);
+          router.push("/invoices");
+        },
+      });
+      return;
     }
     await fetch(`/api/quotes/${id}`, {
       method: "PUT",
@@ -80,15 +105,20 @@ export default function QuotesPage() {
       body: JSON.stringify({ action }),
     });
     fetchQuotes(pagination.page, search, statusFilter);
-    if (action === "convert") {
-      router.push("/invoices");
-    }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Supprimer ce devis ?")) return;
-    await fetch(`/api/quotes/${id}`, { method: "DELETE" });
-    fetchQuotes(pagination.page, search, statusFilter);
+  function handleDelete(id: string) {
+    setConfirmState({
+      open: true,
+      title: "Supprimer ce devis",
+      description: "Cette action est irréversible. Voulez-vous vraiment supprimer ce devis ?",
+      confirmText: "Supprimer",
+      variant: "destructive",
+      onConfirm: async () => {
+        await fetch(`/api/quotes/${id}`, { method: "DELETE" });
+        fetchQuotes(pagination.page, search, statusFilter);
+      },
+    });
   }
 
   return (
@@ -170,6 +200,19 @@ export default function QuotesPage() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }
