@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { invoices } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,13 +20,10 @@ export async function POST(
       .where(eq(invoices.id, id))
       .returning();
     if (!inv) {
-      return NextResponse.json(error("Facture non trouvée"), { status: 404 });
+      return error("Facture non trouvée", 404);
     }
-    return NextResponse.json(success(inv));
+    return success(inv);
   } catch (e) {
-    return NextResponse.json(
-      error(e instanceof Error ? e.message : "Erreur"),
-      { status: 500 }
-    );
+    return error(e instanceof Error ? e.message : "Erreur", 500);
   }
 }

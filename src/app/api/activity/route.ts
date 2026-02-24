@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { invoices, payments, quotes, clients, contracts } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -129,5 +128,5 @@ export async function GET() {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  return NextResponse.json(success(items.slice(0, 15)));
+  return success(items.slice(0, 15));
 }
