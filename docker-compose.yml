@@ -1,8 +1,12 @@
 services:
   # =============================================
   # Application Next.js
+  # Profil "app" — non démarré par défaut.
+  # Dev  : docker compose up -d          (infra seule + pnpm dev en local)
+  # Prod : docker compose --profile app up -d --build
   # =============================================
   app:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,12 +23,16 @@ services:
       - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
       - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
       - NEXT_PUBLIC_STACK_API_URL=${NEXT_PUBLIC_STACK_API_URL:-http://localhost:8102}
+      # URL interne Docker pour les appels serveur → Stack Auth
+      - STACK_API_URL=http://stack-auth:8102
       - PDF_STORAGE_PATH=/app/storage/pdf
     volumes:
       - pdf_storage:/app/storage
     depends_on:
       supabase-db:
         condition: service_healthy
+      stack-auth:
+        condition: service_started
     networks:
       - internal
     restart: unless-stopped

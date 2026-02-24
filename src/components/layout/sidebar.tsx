@@ -51,7 +51,7 @@ export function Sidebar() {
       <aside className="flex h-screen w-64 flex-col border-r bg-background">
       <div className="flex h-16 items-center border-b px-6">
           <Link href="/" className="flex items-center gap-2">
-              <div className="flex items-center justify-center rounded-md bg-gradient-to-br from-slate-900 to-slate-800 px-2 py-1">
+              <div className="flex items-center justify-center px-2 py-1">
                   <Image
                       src="/logo.png"
                       alt="KreaLabs"

@@ -5,13 +5,18 @@ const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
 
 export const isAuthConfigured = !!projectId;
 
+// Server-side URL: use STACK_API_URL (internal Docker hostname) when set,
+// otherwise fall back to NEXT_PUBLIC_STACK_API_URL (works for local dev).
+const stackApiUrl = process.env.NEXT_PUBLIC_STACK_API_URL || "http://localhost:8102";
+const stackApiUrlServer = process.env.STACK_API_URL || stackApiUrl;
+
 export const stackServerApp: StackServerApp = isAuthConfigured
     ? new StackServerApp({
         projectId,
         tokenStore: "nextjs-cookie",
         baseUrl: {
-            browser: "http://localhost:8102",  // navigateur
-            server: "http://stack-auth:8102", // serveur Docker
+            browser: stackApiUrl,
+            server: stackApiUrlServer,
         },
         urls: {
             home: "/",
