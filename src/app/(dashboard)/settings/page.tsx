@@ -28,10 +28,33 @@ interface OrgSummary {
   name: string;
 }
 
+const LEGAL_FORMS = [
+  { value: "micro_entreprise", label: "Micro-entreprise" },
+  { value: "auto_entrepreneur", label: "Auto-entrepreneur" },
+  { value: "sas", label: "SAS" },
+  { value: "sasu", label: "SASU" },
+  { value: "sarl", label: "SARL" },
+  { value: "eurl", label: "EURL" },
+  { value: "gie", label: "GIE" },
+  { value: "association", label: "Association" },
+  { value: "autre", label: "Autre" },
+];
+
+const TVA_REGIMES = [
+  { value: "franchise_base", label: "Franchise en base de TVA" },
+  { value: "reel_simplifie", label: "Réel simplifié" },
+  { value: "reel_normal", label: "Réel normal" },
+];
+
+const WITH_CAPITAL = ["sas", "sasu", "sarl", "eurl"];
+
 interface OrgData {
   id: string;
   name: string;
   legalName?: string;
+  legalForm?: string;
+  tvaRegime?: string;
+  capitalSocial?: string;
   siren?: string;
   siret?: string;
   tvaNumber?: string;
@@ -269,6 +292,69 @@ export default function SettingsPage() {
 
         {/* --- Entreprise --- */}
         <TabsContent value="company" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Identité juridique</CardTitle>
+              <CardDescription>
+                Forme juridique et régime fiscal de votre structure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="legalForm">Forme juridique</Label>
+                  <Select
+                    value={data.legalForm || "autre"}
+                    onValueChange={(v) => update("legalForm", v)}
+                  >
+                    <SelectTrigger id="legalForm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEGAL_FORMS.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tvaRegime">Régime TVA</Label>
+                  <Select
+                    value={data.tvaRegime || "reel_simplifie"}
+                    onValueChange={(v) => update("tvaRegime", v)}
+                  >
+                    <SelectTrigger id="tvaRegime">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TVA_REGIMES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {WITH_CAPITAL.includes(data.legalForm || "") && (
+                <div className="max-w-xs space-y-2">
+                  <Label htmlFor="capitalSocial">Capital social (€)</Label>
+                  <Input
+                    id="capitalSocial"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={data.capitalSocial || ""}
+                    onChange={(e) => update("capitalSocial", e.target.value)}
+                    placeholder="10 000"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Informations de l&apos;entreprise</CardTitle>

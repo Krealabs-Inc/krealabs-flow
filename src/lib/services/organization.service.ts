@@ -44,9 +44,12 @@ export async function updateOrganization(
     capitalSocial: string;
   }>
 ) {
+  // Remove fields that shouldn't be updated (id, timestamps)
+  const { id, createdAt, updatedAt, ...updateData } = data as any;
+
   const [updated] = await db
     .update(organizations)
-    .set({ ...data, updatedAt: new Date() })
+    .set({ ...updateData, updatedAt: new Date() })
     .where(eq(organizations.id, orgId))
     .returning();
   return updated;
