@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Save, Building2, Landmark, FileText, Palette } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Save, Building2, Landmark, FileText, Palette, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,36 +44,49 @@ interface OrgData {
   quoteTerms?: string;
 }
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 export default function SettingsPage() {
   const [data, setData] = useState<OrgData | null>(null);
+  const [initialData, setInitialData] = useState<OrgData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
         const res = await fetch("/api/organizations");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        if (!text) { setLoading(false); return; }
+        if (!text) throw new Error("Empty response");
         const json = JSON.parse(text);
-        if (json.success) setData(json.data);
+        if (json.success && json.data?.id) {
+          setData(json.data);
+          setInitialData(json.data);
+        } else {
+          setLoadError(true);
+        }
       } catch {
-        // DB not ready
+        setLoadError(true);
       }
       setLoading(false);
     }
     load();
   }, []);
 
+  const isDirty = JSON.stringify(data) !== JSON.stringify(initialData);
+
   function update(field: keyof OrgData, value: string | number) {
     setData((prev) => (prev ? { ...prev, [field]: value } : prev));
-    setSaved(false);
+    setSaveStatus("idle");
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     if (!data) return;
-    setSaving(true);
+    setSaveStatus("saving");
+    setSaveError("");
     try {
       const res = await fetch("/api/organizations", {
         method: "PUT",
@@ -83,14 +96,32 @@ export default function SettingsPage() {
       const json = await res.json();
       if (json.success) {
         setData(json.data);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        setInitialData(json.data);
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      } else {
+        setSaveError(json.error || "Erreur lors de l'enregistrement.");
+        setSaveStatus("error");
       }
-    } catch {
-      // Error
+    } catch (e) {
+      setSaveError(
+        e instanceof Error ? e.message : "Connexion impossible à la base de données."
+      );
+      setSaveStatus("error");
     }
-    setSaving(false);
-  }
+  }, [data]);
+
+  // Keyboard shortcut: Cmd/Ctrl + S
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        if (isDirty && saveStatus !== "saving") handleSave();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isDirty, saveStatus, handleSave]);
 
   if (loading) {
     return (
@@ -100,11 +131,25 @@ export default function SettingsPage() {
     );
   }
 
-  if (!data) {
+  if (loadError || !data) {
     return (
-      <p className="text-muted-foreground">
-        Impossible de charger les paramètres. Vérifiez la connexion à la base de données.
-      </p>
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+        <div>
+          <p className="font-medium text-destructive">Impossible de charger les paramètres</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Vérifiez que la base de données est connectée et que les migrations ont été appliquées.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => window.location.reload()}
+          >
+            Réessayer
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -117,10 +162,31 @@ export default function SettingsPage() {
             Configurez votre entreprise, vos coordonnées bancaires et vos préférences de facturation.
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Enregistrement..." : saved ? "Enregistré !" : "Enregistrer"}
-        </Button>
+        <div className="flex items-center gap-3">
+          {saveStatus === "error" && (
+            <div className="flex items-center gap-1.5 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              {saveError}
+            </div>
+          )}
+          {saveStatus === "saved" && (
+            <div className="flex items-center gap-1.5 text-sm text-green-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Enregistré
+            </div>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={saveStatus === "saving" || !isDirty}
+            className="relative"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {saveStatus === "saving" ? "Enregistrement..." : "Enregistrer"}
+            {isDirty && saveStatus === "idle" && (
+              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-orange-500" />
+            )}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="company" className="space-y-4">
@@ -155,11 +221,14 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom de l&apos;entreprise</Label>
+                  <Label htmlFor="name">
+                    Nom de l&apos;entreprise <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="name"
                     value={data.name || ""}
                     onChange={(e) => update("name", e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -171,7 +240,6 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="siren">SIREN</Label>
@@ -180,6 +248,7 @@ export default function SettingsPage() {
                     value={data.siren || ""}
                     onChange={(e) => update("siren", e.target.value)}
                     placeholder="123 456 789"
+                    maxLength={9}
                   />
                 </div>
                 <div className="space-y-2">
@@ -189,6 +258,7 @@ export default function SettingsPage() {
                     value={data.siret || ""}
                     onChange={(e) => update("siret", e.target.value)}
                     placeholder="123 456 789 00012"
+                    maxLength={14}
                   />
                 </div>
                 <div className="space-y-2">
@@ -201,7 +271,6 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="addressLine1">Adresse</Label>
                 <Input
@@ -225,6 +294,7 @@ export default function SettingsPage() {
                     id="postalCode"
                     value={data.postalCode || ""}
                     onChange={(e) => update("postalCode", e.target.value)}
+                    maxLength={5}
                   />
                 </div>
                 <div className="space-y-2">
@@ -241,10 +311,10 @@ export default function SettingsPage() {
                     id="country"
                     value={data.country || "FR"}
                     onChange={(e) => update("country", e.target.value)}
+                    maxLength={2}
                   />
                 </div>
               </div>
-
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Téléphone</Label>
@@ -269,6 +339,7 @@ export default function SettingsPage() {
                     id="website"
                     value={data.website || ""}
                     onChange={(e) => update("website", e.target.value)}
+                    placeholder="https://..."
                   />
                 </div>
               </div>
@@ -311,15 +382,17 @@ export default function SettingsPage() {
                   value={data.iban || ""}
                   onChange={(e) => update("iban", e.target.value)}
                   placeholder="FR76 1234 5678 9012 3456 7890 123"
+                  maxLength={34}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bic">BIC</Label>
+                <Label htmlFor="bic">BIC / SWIFT</Label>
                 <Input
                   id="bic"
                   value={data.bic || ""}
                   onChange={(e) => update("bic", e.target.value)}
                   placeholder="ABCDEFGH"
+                  maxLength={11}
                 />
               </div>
             </CardContent>
@@ -338,12 +411,11 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="defaultPaymentTerms">
-                    Délai de paiement (jours)
-                  </Label>
+                  <Label htmlFor="defaultPaymentTerms">Délai de paiement (jours)</Label>
                   <Input
                     id="defaultPaymentTerms"
                     type="number"
+                    min={0}
                     value={data.defaultPaymentTerms ?? 30}
                     onChange={(e) =>
                       update("defaultPaymentTerms", parseInt(e.target.value) || 30)
@@ -356,15 +428,15 @@ export default function SettingsPage() {
                     id="defaultTvaRate"
                     value={data.defaultTvaRate || "20.00"}
                     onChange={(e) => update("defaultTvaRate", e.target.value)}
+                    placeholder="20.00"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="quoteValidityDays">
-                    Validité des devis (jours)
-                  </Label>
+                  <Label htmlFor="quoteValidityDays">Validité des devis (jours)</Label>
                   <Input
                     id="quoteValidityDays"
                     type="number"
+                    min={1}
                     value={data.quoteValidityDays ?? 30}
                     onChange={(e) =>
                       update("quoteValidityDays", parseInt(e.target.value) || 30)
@@ -372,14 +444,14 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="invoicePrefix">Préfixe factures</Label>
                   <Input
                     id="invoicePrefix"
                     value={data.invoicePrefix || "FA"}
-                    onChange={(e) => update("invoicePrefix", e.target.value)}
+                    onChange={(e) => update("invoicePrefix", e.target.value.toUpperCase())}
+                    maxLength={6}
                   />
                 </div>
                 <div className="space-y-2">
@@ -387,11 +459,11 @@ export default function SettingsPage() {
                   <Input
                     id="quotePrefix"
                     value={data.quotePrefix || "DE"}
-                    onChange={(e) => update("quotePrefix", e.target.value)}
+                    onChange={(e) => update("quotePrefix", e.target.value.toUpperCase())}
+                    maxLength={6}
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="legalMentions">Mentions légales</Label>
                 <Textarea
@@ -403,9 +475,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quoteTerms">
-                  Conditions générales des devis
-                </Label>
+                <Label htmlFor="quoteTerms">Conditions générales des devis</Label>
                 <Textarea
                   id="quoteTerms"
                   rows={4}
@@ -440,7 +510,7 @@ export default function SettingsPage() {
                   Chemin relatif dans /public ou URL externe. Par défaut : /Logo Krealabs.png
                 </p>
               </div>
-              {(data.logoUrl || "/Logo Krealabs.png") && (
+              {(data.logoUrl || true) && (
                 <div className="rounded-lg border p-4">
                   <p className="mb-2 text-sm font-medium">Aperçu :</p>
                   <div className="inline-block rounded-lg bg-[#8B89F7] p-4">
@@ -449,6 +519,9 @@ export default function SettingsPage() {
                       src={data.logoUrl || "/Logo Krealabs.png"}
                       alt="Logo"
                       className="h-12 w-auto"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
                 </div>
@@ -457,6 +530,12 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {isDirty && (
+        <p className="text-xs text-muted-foreground text-right">
+          Modifications non enregistrées · <kbd className="px-1 py-0.5 rounded bg-muted text-xs">⌘S</kbd> pour sauvegarder
+        </p>
+      )}
     </div>
   );
 }
