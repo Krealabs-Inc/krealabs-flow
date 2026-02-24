@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getUserOrgIds } from "@/lib/auth/get-user-orgs";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { listClients, createClient } from "@/lib/services/client.service";
 import { createClientSchema } from "@/lib/validators/client.validator";
 import { success, error, paginated } from "@/lib/utils/api-response";
 import type { ClientPipelineStage } from "@/types";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 const VALID_STAGES: ClientPipelineStage[] = [
   "prospect",
@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
     : undefined;
 
   try {
+    const orgIds = await getUserOrgIds(user.id);
     const result = await listClients({
-      organizationId: DEFAULT_ORG_ID,
+      organizationIds: orgIds,
       page,
       limit,
       search,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     return error(parsed.error.issues[0].message, 422);
   }
 
-  const client = await createClient(parsed.data, DEFAULT_ORG_ID, user.id);
+  const orgId = await resolveOrgId(request, user.id);
+  const client = await createClient(parsed.data, orgId, user.id);
   return success(client, 201);
 }

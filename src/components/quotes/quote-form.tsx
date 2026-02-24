@@ -23,17 +23,28 @@ import { Separator } from "@/components/ui/separator";
 import { QuoteLineEditor } from "./quote-line-editor";
 import type { Quote, QuoteLineFormData } from "@/types/quote";
 import type { Client } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 
 interface QuoteFormProps {
   quote?: Quote;
 }
 
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
 export function QuoteForm({ quote }: QuoteFormProps) {
   const router = useRouter();
+  const { currentOrgId } = useOrg();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [orgs, setOrgs] = useState<OrgOption[]>([]);
   const [clientId, setClientId] = useState(quote?.clientId || "");
+  const [issuingOrgId, setIssuingOrgId] = useState<string>(
+    (quote as any)?.issuingOrgId || currentOrgId || ""
+  );
   const [discountPercent, setDiscountPercent] = useState(
     parseFloat(quote?.discountPercent ?? "0")
   );
@@ -74,12 +85,23 @@ export function QuoteForm({ quote }: QuoteFormProps) {
   const isEditing = !!quote;
 
   useEffect(() => {
-    async function loadClients() {
-      const res = await fetch("/api/clients?limit=100");
-      const data = await res.json();
-      if (data.success) setClients(data.data);
+    async function loadData() {
+      const [clientsRes, orgsRes] = await Promise.all([
+        fetch("/api/clients?limit=100"),
+        fetch("/api/user/organizations"),
+      ]);
+      const clientsJson = await clientsRes.json();
+      const orgsJson = await orgsRes.json();
+      if (clientsJson.success) setClients(clientsJson.data);
+      if (orgsJson.success) {
+        setOrgs(orgsJson.data.map((o: OrgOption) => ({ id: o.id, name: o.name })));
+        if (!quote && !issuingOrgId && orgsJson.data.length > 0) {
+          const primary = orgsJson.data.find((o: any) => o.isPrimary) ?? orgsJson.data[0];
+          setIssuingOrgId(primary.id);
+        }
+      }
     }
-    loadClients();
+    loadData();
   }, []);
 
   // Compute totals
@@ -106,6 +128,7 @@ export function QuoteForm({ quote }: QuoteFormProps) {
 
     const data = {
       clientId,
+      issuingOrgId: issuingOrgId || undefined,
       reference: formData.get("reference") as string || undefined,
       issueDate: formData.get("issueDate") as string || undefined,
       validityDate: formData.get("validityDate") as string || undefined,
@@ -159,6 +182,23 @@ export function QuoteForm({ quote }: QuoteFormProps) {
           <CardTitle>Informations générales</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          {orgs.length > 1 && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>Émettre depuis</Label>
+              <Select value={issuingOrgId} onValueChange={setIssuingOrgId}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Sélectionner l'entreprise émettrice" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgs.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Client *</Label>
             <Select value={clientId} onValueChange={setClientId} required>

@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import { success, error } from "@/lib/utils/api-response";
 import { updateObligationStatus } from "@/lib/services/obligation.service";
 import type { ObligationStatus } from "@/lib/fiscal/obligation.types";
 
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 const VALID_STATUSES: ObligationStatus[] = ["pending", "paid", "overdue"];
 
 /**
@@ -36,8 +36,9 @@ export async function PUT(
   }
 
   try {
+    const orgId = await getPrimaryOrgId(user.id);
     await updateObligationStatus(
-      DEFAULT_ORG_ID,
+      orgId,
       key,
       body.status as ObligationStatus,
       body.amountOverride !== undefined ? Number(body.amountOverride) : undefined,

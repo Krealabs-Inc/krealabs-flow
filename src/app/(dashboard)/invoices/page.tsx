@@ -18,6 +18,7 @@ import { PaymentDialog } from "@/components/invoices/payment-dialog";
 import type { Invoice } from "@/types/invoice";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Tous les statuts" },
@@ -30,6 +31,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function InvoicesPage() {
+  const { currentOrgId } = useOrg();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -65,7 +67,8 @@ export default function InvoicesPage() {
       if (tabValue === "overdue") params.set("overdue", "true");
 
       try {
-        const res = await fetch(`/api/invoices?${params}`);
+        params.set("orgId", currentOrgId);
+      const res = await fetch(`/api/invoices?${params}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
         const data: PaginatedResponse<Invoice> = JSON.parse(text);
@@ -78,7 +81,7 @@ export default function InvoicesPage() {
       }
       setLoading(false);
     },
-    []
+    [currentOrgId]
   );
 
   useEffect(() => {

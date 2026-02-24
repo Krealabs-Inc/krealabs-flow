@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useOrg } from "@/contexts/org-context";
 import { Search, Filter, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,6 +28,7 @@ const METHOD_OPTIONS = [
 ];
 
 export default function PaymentsPage() {
+  const { currentOrgId } = useOrg();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [methodFilter, setMethodFilter] = useState("all");
@@ -58,6 +60,7 @@ export default function PaymentsPage() {
       if (dateTo) params.set("dateTo", dateTo);
 
       try {
+        params.set("orgId", currentOrgId);
         const res = await fetch(`/api/payments?${params}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
@@ -71,7 +74,7 @@ export default function PaymentsPage() {
       }
       setLoading(false);
     },
-    [methodFilter, dateFrom, dateTo]
+    [methodFilter, dateFrom, dateTo, currentOrgId]
   );
 
   useEffect(() => {

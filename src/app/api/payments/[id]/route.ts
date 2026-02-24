@@ -1,9 +1,8 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import { getPayment, refundPayment } from "@/lib/services/payment.service";
 import { success, error } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(
   _request: NextRequest,
@@ -13,7 +12,8 @@ export async function GET(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
-  const payment = await getPayment(id, DEFAULT_ORG_ID);
+  const orgId = await getPrimaryOrgId(user.id);
+  const payment = await getPayment(id, orgId);
 
   if (!payment) return error("Paiement non trouvé", 404);
   return success(payment);
@@ -28,10 +28,11 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
+  const orgId = await getPrimaryOrgId(user.id);
 
   if (body.action === "refund") {
     try {
-      const result = await refundPayment(id, DEFAULT_ORG_ID, user.id);
+      const result = await refundPayment(id, orgId, user.id);
       if (!result) return error("Paiement non trouvé", 404);
       return success(result);
     } catch (err) {

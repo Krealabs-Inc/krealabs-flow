@@ -26,9 +26,11 @@ import {
   XCircle,
   Trash2,
   Plus,
+  Building2,
 } from "lucide-react";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { invoiceTypeLabels, type Invoice, type InvoiceType } from "@/types/invoice";
+import { useOrg } from "@/contexts/org-context";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -48,6 +50,8 @@ export function InvoiceTable({
   onDelete,
 }: InvoiceTableProps) {
   const router = useRouter();
+  const { orgs, currentOrg } = useOrg();
+  const isMultiOrg = orgs.length > 1;
 
   if (invoices.length === 0) {
     return (
@@ -84,8 +88,14 @@ export function InvoiceTable({
                 className="cursor-pointer"
                 onClick={() => router.push(`/invoices/${inv.id}`)}
               >
-                <TableCell className="font-mono font-medium">
-                  {inv.invoiceNumber}
+                <TableCell>
+                  <span className="font-mono font-medium">{inv.invoiceNumber}</span>
+                  {isMultiOrg && currentOrg && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Building2 className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{currentOrg.name}</span>
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">

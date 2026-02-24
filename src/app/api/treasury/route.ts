@@ -1,10 +1,10 @@
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { db } from "@/lib/db";
 import { invoices, payments, clients } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { success, error } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 // French month abbreviations (Jan. starts at index 0)
 const MONTH_LABELS = [
@@ -12,11 +12,13 @@ const MONTH_LABELS = [
   "Juil.", "Août", "Sep.", "Oct.", "Nov.", "Déc.",
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return error("Non autorisé", 401);
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
+
     // ── Date helpers ──────────────────────────────────────────────
     const now = new Date();
     const today = now.toISOString().split("T")[0];
@@ -50,7 +52,7 @@ export async function GET() {
         .from(payments)
         .where(
           and(
-            eq(payments.organizationId, DEFAULT_ORG_ID),
+            eq(payments.organizationId, orgId),
             eq(payments.status, "received"),
             gte(payments.paymentDate, monthStart)
           )
@@ -64,7 +66,7 @@ export async function GET() {
         .from(invoices)
         .where(
           and(
-            eq(invoices.organizationId, DEFAULT_ORG_ID),
+            eq(invoices.organizationId, orgId),
             sql`${invoices.status} IN ('sent', 'viewed', 'partially_paid')`
           )
         ),
@@ -77,7 +79,7 @@ export async function GET() {
         .from(invoices)
         .where(
           and(
-            eq(invoices.organizationId, DEFAULT_ORG_ID),
+            eq(invoices.organizationId, orgId),
             eq(invoices.status, "overdue")
           )
         ),
@@ -91,7 +93,7 @@ export async function GET() {
         .from(payments)
         .where(
           and(
-            eq(payments.organizationId, DEFAULT_ORG_ID),
+            eq(payments.organizationId, orgId),
             eq(payments.status, "received"),
             gte(payments.paymentDate, startDate)
           )
@@ -111,7 +113,7 @@ export async function GET() {
         .leftJoin(clients, eq(clients.id, invoices.clientId))
         .where(
           and(
-            eq(payments.organizationId, DEFAULT_ORG_ID),
+            eq(payments.organizationId, orgId),
             eq(payments.status, "received")
           )
         )
@@ -138,7 +140,7 @@ export async function GET() {
         .leftJoin(clients, eq(clients.id, invoices.clientId))
         .where(
           and(
-            eq(invoices.organizationId, DEFAULT_ORG_ID),
+            eq(invoices.organizationId, orgId),
             sql`${invoices.status} IN ('sent', 'viewed', 'partially_paid', 'overdue')`
           )
         )
@@ -157,7 +159,7 @@ export async function GET() {
         .leftJoin(clients, eq(clients.id, invoices.clientId))
         .where(
           and(
-            eq(invoices.organizationId, DEFAULT_ORG_ID),
+            eq(invoices.organizationId, orgId),
             sql`${invoices.status} IN ('sent', 'viewed', 'partially_paid', 'overdue')`,
             gte(invoices.dueDate, today),
             lte(invoices.dueDate, thirtyDaysDate)

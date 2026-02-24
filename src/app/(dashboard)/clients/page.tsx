@@ -15,6 +15,7 @@ import {
 import { ClientTable } from "@/components/clients/client-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { Client, PaginatedResponse, ClientPipelineStage } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 import { CLIENT_PIPELINE_LABELS } from "@/types";
 
 const PIPELINE_STAGES: ClientPipelineStage[] = [
@@ -28,6 +29,7 @@ const PIPELINE_STAGES: ClientPipelineStage[] = [
 ];
 
 export default function ClientsPage() {
+  const { currentOrgId } = useOrg();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
@@ -58,6 +60,7 @@ export default function ClientsPage() {
       };
       if (searchQuery) params.search = searchQuery;
       if (stage !== "all") params.stage = stage;
+      params.orgId = currentOrgId;
 
       const res = await fetch(`/api/clients?${new URLSearchParams(params)}`);
       const text = await res.text();
@@ -71,7 +74,7 @@ export default function ClientsPage() {
       // DB not ready
     }
     setLoading(false);
-  }, []);
+  }, [currentOrgId]);
 
   useEffect(() => {
     fetchClients(1, search, stageFilter);

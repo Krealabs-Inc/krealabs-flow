@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { clients } from "@/lib/db/schema";
-import { eq, and, ilike, or, sql, desc } from "drizzle-orm";
+import { eq, and, ilike, or, sql, desc, inArray } from "drizzle-orm";
 import { createAuditLog } from "./audit.service";
 import type {
   CreateClientInput,
@@ -9,7 +9,8 @@ import type {
 import type { ClientPipelineStage } from "@/types";
 
 interface ListClientsParams {
-  organizationId: string;
+  organizationId?: string;
+  organizationIds?: string[];
   page?: number;
   limit?: number;
   search?: string;
@@ -18,6 +19,7 @@ interface ListClientsParams {
 
 export async function listClients({
   organizationId,
+  organizationIds,
   page = 1,
   limit = 20,
   search,
@@ -25,8 +27,12 @@ export async function listClients({
 }: ListClientsParams) {
   const offset = (page - 1) * limit;
 
+  const orgIds = organizationIds ?? (organizationId ? [organizationId] : []);
+
   const conditions = [
-    eq(clients.organizationId, organizationId),
+    orgIds.length === 1
+      ? eq(clients.organizationId, orgIds[0])
+      : inArray(clients.organizationId, orgIds),
     eq(clients.isActive, true),
   ];
 

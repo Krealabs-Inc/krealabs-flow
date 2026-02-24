@@ -25,12 +25,14 @@ import {
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import type { DashboardStats } from "@/lib/services/dashboard.service";
 import type { ActivityItem } from "@/app/api/activity/route";
+import { useOrg } from "@/contexts/org-context";
 
 const fmt = (val: number) =>
   val.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { currentOrgId } = useOrg();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
@@ -38,7 +40,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/dashboard");
+        const res = await fetch(`/api/dashboard?orgId=${currentOrgId}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
         const data = JSON.parse(text);
@@ -51,11 +53,11 @@ export default function DashboardPage() {
     load();
 
     // Load activity feed independently
-    fetch("/api/activity")
+    fetch(`/api/activity?orgId=${currentOrgId}`)
       .then((r) => r.json())
       .then((j) => { if (j.success) setActivityItems(j.data); })
       .catch(() => {});
-  }, []);
+  }, [currentOrgId]);
 
   if (loading) {
     return (

@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { listInvoices, createInvoice } from "@/lib/services/invoice.service";
 import { createInvoiceSchema } from "@/lib/validators/invoice.validator";
 import { success, error, paginated } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -20,8 +19,9 @@ export async function GET(request: NextRequest) {
   const overdueOnly = searchParams.get("overdue") === "true";
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
     const result = await listInvoices({
-      organizationId: DEFAULT_ORG_ID,
+      organizationId: orgId,
       page,
       limit,
       search,
@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const invoice = await createInvoice(parsed.data, DEFAULT_ORG_ID, user.id);
+    const orgId = await resolveOrgId(request, user.id);
+    const invoice = await createInvoice(parsed.data, orgId, user.id);
     return success(invoice, 201);
   } catch (err) {
     return error(err instanceof Error ? err.message : "Erreur interne", 500);

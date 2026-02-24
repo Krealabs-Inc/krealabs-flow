@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useOrg } from "@/contexts/org-context";
 import {
   ChevronLeft,
   ChevronRight,
@@ -310,6 +311,7 @@ function AnnualView({
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function FiscalPage() {
+  const { currentOrgId } = useOrg();
   const [year, setYear] = useState(new Date().getFullYear());
   const [data, setData] = useState<FiscalApiResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -318,13 +320,13 @@ export default function FiscalPage() {
   const load = useCallback(async (y: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/fiscal?year=${y}`);
+      const res = await fetch(`/api/fiscal?year=${y}&orgId=${currentOrgId}`);
       const json = await res.json();
       if (json.success) setData(json.data);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentOrgId]);
 
   useEffect(() => {
     load(year);

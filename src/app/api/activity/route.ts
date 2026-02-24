@@ -1,9 +1,10 @@
+import { NextRequest } from "next/server";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { db } from "@/lib/db";
 import { invoices, payments, quotes, clients, contracts } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { success } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export interface ActivityItem {
   id: string;
@@ -15,15 +16,20 @@ export interface ActivityItem {
   href: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const items: ActivityItem[] = [];
 
+  const user = await getAuthUser();
+  if (!user) return success([]);
+
   try {
+    const orgId = await resolveOrgId(request, user.id);
+
     // Recent invoices
     const recentInvoices = await db
       .select()
       .from(invoices)
-      .where(eq(invoices.organizationId, DEFAULT_ORG_ID))
+      .where(eq(invoices.organizationId, orgId))
       .orderBy(desc(invoices.createdAt))
       .limit(5);
 
@@ -43,7 +49,7 @@ export async function GET() {
     const recentPayments = await db
       .select()
       .from(payments)
-      .where(eq(payments.organizationId, DEFAULT_ORG_ID))
+      .where(eq(payments.organizationId, orgId))
       .orderBy(desc(payments.createdAt))
       .limit(5);
 
@@ -63,7 +69,7 @@ export async function GET() {
     const recentQuotes = await db
       .select()
       .from(quotes)
-      .where(eq(quotes.organizationId, DEFAULT_ORG_ID))
+      .where(eq(quotes.organizationId, orgId))
       .orderBy(desc(quotes.createdAt))
       .limit(3);
 
@@ -83,7 +89,7 @@ export async function GET() {
     const recentClients = await db
       .select()
       .from(clients)
-      .where(eq(clients.organizationId, DEFAULT_ORG_ID))
+      .where(eq(clients.organizationId, orgId))
       .orderBy(desc(clients.createdAt))
       .limit(3);
 
@@ -105,7 +111,7 @@ export async function GET() {
     const recentContracts = await db
       .select()
       .from(contracts)
-      .where(eq(contracts.organizationId, DEFAULT_ORG_ID))
+      .where(eq(contracts.organizationId, orgId))
       .orderBy(desc(contracts.createdAt))
       .limit(3);
 

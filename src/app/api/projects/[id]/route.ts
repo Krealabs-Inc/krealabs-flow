@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import {
   getProject,
   updateProject,
@@ -10,8 +11,6 @@ import {
 import { updateProjectSchema } from "@/lib/validators/project.validator";
 import { success, error } from "@/lib/utils/api-response";
 
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +19,8 @@ export async function GET(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
-  const project = await getProject(id, DEFAULT_ORG_ID);
+  const orgId = await getPrimaryOrgId(user.id);
+  const project = await getProject(id, orgId);
 
   if (!project) return error("Projet non trouvé", 404);
   return success(project);
@@ -35,6 +35,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
+  const orgId = await getPrimaryOrgId(user.id);
 
   // Handle actions
   if (body.action) {
@@ -42,21 +43,11 @@ export async function PUT(
       switch (body.action) {
         case "update_status":
           return success(
-            await updateProjectStatus(
-              id,
-              body.status,
-              DEFAULT_ORG_ID,
-              user.id
-            )
+            await updateProjectStatus(id, body.status, orgId, user.id)
           );
         case "complete_milestone":
           return success(
-            await completeMilestone(
-              id,
-              body.milestoneId,
-              DEFAULT_ORG_ID,
-              user.id
-            )
+            await completeMilestone(id, body.milestoneId, orgId, user.id)
           );
         default:
           return error("Action inconnue", 400);
@@ -76,12 +67,7 @@ export async function PUT(
   }
 
   try {
-    const updated = await updateProject(
-      id,
-      parsed.data,
-      DEFAULT_ORG_ID,
-      user.id
-    );
+    const updated = await updateProject(id, parsed.data, orgId, user.id);
     if (!updated) return error("Projet non trouvé", 404);
     return success(updated);
   } catch (err) {
@@ -100,9 +86,10 @@ export async function DELETE(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
+  const orgId = await getPrimaryOrgId(user.id);
 
   try {
-    const deleted = await deleteProject(id, DEFAULT_ORG_ID, user.id);
+    const deleted = await deleteProject(id, orgId, user.id);
     if (!deleted) return error("Projet non trouvé", 404);
     return success({ deleted: true });
   } catch (err) {

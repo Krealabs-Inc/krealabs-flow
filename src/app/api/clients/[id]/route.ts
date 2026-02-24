@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import {
   getClient,
   updateClient,
@@ -7,8 +8,6 @@ import {
 } from "@/lib/services/client.service";
 import { updateClientSchema } from "@/lib/validators/client.validator";
 import { success, error } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(
   _request: NextRequest,
@@ -18,7 +17,8 @@ export async function GET(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
-  const client = await getClient(id, DEFAULT_ORG_ID);
+  const orgId = await getPrimaryOrgId(user.id);
+  const client = await getClient(id, orgId);
 
   if (!client) return error("Client non trouvé", 404);
   return success(client);
@@ -39,12 +39,8 @@ export async function PUT(
     return error(parsed.error.issues[0].message, 422);
   }
 
-  const updated = await updateClient(
-    id,
-    parsed.data,
-    DEFAULT_ORG_ID,
-    user.id
-  );
+  const orgId = await getPrimaryOrgId(user.id);
+  const updated = await updateClient(id, parsed.data, orgId, user.id);
 
   if (!updated) return error("Client non trouvé", 404);
   return success(updated);
@@ -58,7 +54,8 @@ export async function DELETE(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
-  const deleted = await deleteClient(id, DEFAULT_ORG_ID, user.id);
+  const orgId = await getPrimaryOrgId(user.id);
+  const deleted = await deleteClient(id, orgId, user.id);
 
   if (!deleted) return error("Client non trouvé", 404);
   return success({ deleted: true });

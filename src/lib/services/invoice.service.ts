@@ -221,6 +221,7 @@ export async function createInvoice(
     .insert(invoices)
     .values({
       organizationId,
+      issuingOrgId: input.issuingOrgId ?? null,
       clientId: input.clientId,
       projectId: input.projectId,
       quoteId: input.quoteId,
@@ -328,6 +329,7 @@ export async function updateInvoice(
       discountPercent: String(discountPercent),
       discountAmount: totals.discountAmount,
       amountDue: totals.totalTtc,
+      issuingOrgId: input.issuingOrgId !== undefined ? input.issuingOrgId : existing.issuingOrgId,
       introduction: input.introduction ?? existing.introduction,
       footerNotes: input.footerNotes ?? existing.footerNotes,
       notes: input.notes ?? existing.notes,

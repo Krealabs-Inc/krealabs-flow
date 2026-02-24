@@ -29,6 +29,7 @@ export const createInvoiceSchema = z.object({
   notes: z.string().optional(),
   templateId: z.string().uuid().optional(),
   parentInvoiceId: z.string().uuid().optional(),
+  issuingOrgId: z.string().uuid().optional(),
   lines: z.array(invoiceLineSchema).min(1, "Au moins une ligne est requise"),
 });
 

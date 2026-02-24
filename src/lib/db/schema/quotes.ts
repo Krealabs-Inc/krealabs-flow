@@ -74,6 +74,8 @@ export const quotes = pgTable(
     signatureIp: varchar("signature_ip", { length: 45 }),
     signatureData: text("signature_data"),
 
+    issuingOrgId: uuid("issuing_org_id").references(() => organizations.id),
+
     createdBy: uuid("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

@@ -175,6 +175,7 @@ export async function createQuote(
     .insert(quotes)
     .values({
       organizationId,
+      issuingOrgId: input.issuingOrgId ?? null,
       clientId: input.clientId,
       projectId: input.projectId,
       quoteNumber,
@@ -285,6 +286,7 @@ export async function updateQuote(
       discountAmount: totals.discountAmount,
       depositPercent: depositPercent?.toString(),
       depositAmount,
+      issuingOrgId: input.issuingOrgId !== undefined ? input.issuingOrgId : existing.issuingOrgId,
       introduction: input.introduction ?? existing.introduction,
       terms: input.terms ?? existing.terms,
       notes: input.notes ?? existing.notes,

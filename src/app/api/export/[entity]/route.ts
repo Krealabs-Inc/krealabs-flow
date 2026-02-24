@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { db } from "@/lib/db";
 import { clients, invoices, payments, quotes } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
@@ -28,19 +28,24 @@ function toCsv(rows: Record<string, unknown>[]): string {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ entity: string }> }
 ) {
+  const user = await getAuthUser();
+  if (!user) return new Response("Non autorisé", { status: 401 });
+
   const { entity } = await params;
   let csv = "";
   let filename = `export-${entity}`;
 
   try {
+    const orgId = await resolveOrgId(req, user.id);
+
     if (entity === "clients") {
       const rows = await db
         .select()
         .from(clients)
-        .where(eq(clients.organizationId, DEFAULT_ORG_ID))
+        .where(eq(clients.organizationId, orgId))
         .orderBy(desc(clients.createdAt));
       csv = toCsv(
         rows.map((r) => ({
@@ -61,7 +66,7 @@ export async function GET(
       const rows = await db
         .select()
         .from(invoices)
-        .where(eq(invoices.organizationId, DEFAULT_ORG_ID))
+        .where(eq(invoices.organizationId, orgId))
         .orderBy(desc(invoices.issueDate));
       csv = toCsv(
         rows.map((r) => ({
@@ -82,7 +87,7 @@ export async function GET(
       const rows = await db
         .select()
         .from(payments)
-        .where(eq(payments.organizationId, DEFAULT_ORG_ID))
+        .where(eq(payments.organizationId, orgId))
         .orderBy(desc(payments.paymentDate));
       csv = toCsv(
         rows.map((r) => ({
@@ -99,7 +104,7 @@ export async function GET(
       const rows = await db
         .select()
         .from(quotes)
-        .where(eq(quotes.organizationId, DEFAULT_ORG_ID))
+        .where(eq(quotes.organizationId, orgId))
         .orderBy(desc(quotes.issueDate));
       csv = toCsv(
         rows.map((r) => ({
