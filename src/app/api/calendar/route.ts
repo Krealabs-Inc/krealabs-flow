@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { success, error } from "@/lib/utils/api-response";
 import { db } from "@/lib/db";
 import { invoices, quotes, payments, contracts, clients } from "@/lib/db/schema";
 import { eq, and, gte, lte, ne, or, sql } from "drizzle-orm";
 import { getObligationsForYear } from "@/lib/services/obligation.service";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export interface CalendarEvent {
   id: string;
@@ -63,6 +62,7 @@ export async function GET(request: NextRequest) {
   const endOfMonth = `${year}-${String(monthNum).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
     const events: CalendarEvent[] = [];
 
     // --- Factures avec dueDate dans le mois (status != cancelled) ---
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(clients, eq(clients.id, invoices.clientId))
       .where(
         and(
-          eq(invoices.organizationId, DEFAULT_ORG_ID),
+          eq(invoices.organizationId, orgId),
           gte(invoices.dueDate, startOfMonth),
           lte(invoices.dueDate, endOfMonth),
           ne(invoices.status, "cancelled")
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(clients, eq(clients.id, quotes.clientId))
       .where(
         and(
-          eq(quotes.organizationId, DEFAULT_ORG_ID),
+          eq(quotes.organizationId, orgId),
           gte(quotes.validityDate, startOfMonth),
           lte(quotes.validityDate, endOfMonth),
           ne(quotes.status, "rejected")
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(clients, eq(clients.id, invoices.clientId))
       .where(
         and(
-          eq(payments.organizationId, DEFAULT_ORG_ID),
+          eq(payments.organizationId, orgId),
           gte(payments.paymentDate, startOfMonth),
           lte(payments.paymentDate, endOfMonth)
         )
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(clients, eq(clients.id, contracts.clientId))
       .where(
         and(
-          eq(contracts.organizationId, DEFAULT_ORG_ID),
+          eq(contracts.organizationId, orgId),
           eq(contracts.status, "active"),
           or(
             and(
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
 
     // --- Obligations fiscales du mois ---
     try {
-      const fiscalResult = await getObligationsForYear(year, DEFAULT_ORG_ID);
+      const fiscalResult = await getObligationsForYear(year, orgId);
       for (const obligation of fiscalResult.obligations) {
         const dueDateStr = obligation.dueDate.toISOString().split("T")[0];
         if (!dueDateStr.startsWith(`${year}-${String(monthNum).padStart(2, "0")}`)) continue;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useOrg } from "@/contexts/org-context";
 import Link from "next/link";
 import {
   AreaChart,
@@ -299,13 +300,14 @@ function ForecastTable({ data }: { data: TreasuryForecastItem[] }) {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function TreasuryPage() {
+  const { currentOrgId } = useOrg();
   const [data, setData] = useState<TreasuryPageStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/treasury");
+        const res = await fetch(`/api/treasury?orgId=${currentOrgId}`);
         const text = await res.text();
         if (!text) {
           setLoading(false);
@@ -319,7 +321,7 @@ export default function TreasuryPage() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [currentOrgId]);
 
   // ── Loading state ────────────────────────────────────────────────
   if (loading) {

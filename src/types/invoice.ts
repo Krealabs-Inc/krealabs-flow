@@ -51,6 +51,10 @@ export interface Invoice {
   createdAt: string | null;
   updatedAt: string | null;
   lines: InvoiceLine[];
+  // joined fields (optional, returned by API when available)
+  issuingOrgId?: string | null;
+  issuingOrgName?: string | null;
+  clientName?: string | null;
 }
 
 export type InvoiceStatus =

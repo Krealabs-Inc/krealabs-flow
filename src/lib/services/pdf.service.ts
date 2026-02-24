@@ -62,8 +62,11 @@ export async function getInvoicePdfData(
   const invoice = await getInvoice(invoiceId, organizationId);
   if (!invoice) return null;
 
+  // Use issuingOrgId if set, fallback to organizationId
+  const orgIdForPdf = invoice.issuingOrgId ?? organizationId;
+
   const [org, client] = await Promise.all([
-    getOrganization(organizationId),
+    getOrganization(orgIdForPdf),
     getClient(invoice.clientId),
   ]);
 
@@ -84,8 +87,11 @@ export async function getQuotePdfData(
   const quote = await getQuote(quoteId, organizationId);
   if (!quote) return null;
 
+  // Use issuingOrgId if set, fallback to organizationId
+  const orgIdForPdf = quote.issuingOrgId ?? organizationId;
+
   const [org, client] = await Promise.all([
-    getOrganization(organizationId),
+    getOrganization(orgIdForPdf),
     getClient(quote.clientId),
   ]);
 

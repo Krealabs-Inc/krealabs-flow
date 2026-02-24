@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import {
   getInvoice,
   updateInvoice,
@@ -12,8 +13,6 @@ import {
 import { updateInvoiceSchema } from "@/lib/validators/invoice.validator";
 import { success, error } from "@/lib/utils/api-response";
 
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,7 +21,8 @@ export async function GET(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
-  const invoice = await getInvoice(id, DEFAULT_ORG_ID);
+  const orgId = await getPrimaryOrgId(user.id);
+  const invoice = await getInvoice(id, orgId);
 
   if (!invoice) return error("Facture non trouvée", 404);
   return success(invoice);
@@ -37,6 +37,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
+  const orgId = await getPrimaryOrgId(user.id);
 
   // Handle actions
   if (body.action) {
@@ -44,15 +45,15 @@ export async function PUT(
       switch (body.action) {
         case "send":
           return success(
-            await updateInvoiceStatus(id, "sent", DEFAULT_ORG_ID, user.id)
+            await updateInvoiceStatus(id, "sent", orgId, user.id)
           );
         case "cancel":
           return success(
-            await cancelInvoice(id, DEFAULT_ORG_ID, user.id)
+            await cancelInvoice(id, orgId, user.id)
           );
         case "mark_overdue":
           return success(
-            await updateInvoiceStatus(id, "overdue", DEFAULT_ORG_ID, user.id)
+            await updateInvoiceStatus(id, "overdue", orgId, user.id)
           );
         case "record_payment":
           return success(
@@ -61,7 +62,7 @@ export async function PUT(
               body.amount,
               body.method || "bank_transfer",
               body.paymentDate || new Date().toISOString().split("T")[0],
-              DEFAULT_ORG_ID,
+              orgId,
               user.id,
               body.reference,
               body.notes
@@ -69,7 +70,7 @@ export async function PUT(
           );
         case "create_final":
           return success(
-            await createFinalInvoice(id, DEFAULT_ORG_ID, user.id)
+            await createFinalInvoice(id, orgId, user.id)
           );
         default:
           return error("Action inconnue", 400);
@@ -89,12 +90,7 @@ export async function PUT(
   }
 
   try {
-    const updated = await updateInvoice(
-      id,
-      parsed.data,
-      DEFAULT_ORG_ID,
-      user.id
-    );
+    const updated = await updateInvoice(id, parsed.data, orgId, user.id);
     if (!updated) return error("Facture non trouvée", 404);
     return success(updated);
   } catch (err) {
@@ -113,9 +109,10 @@ export async function DELETE(
   if (!user) return error("Non autorisé", 401);
 
   const { id } = await params;
+  const orgId = await getPrimaryOrgId(user.id);
 
   try {
-    const deleted = await deleteInvoice(id, DEFAULT_ORG_ID, user.id);
+    const deleted = await deleteInvoice(id, orgId, user.id);
     if (!deleted) return error("Facture non trouvée", 404);
     return success({ deleted: true });
   } catch (err) {

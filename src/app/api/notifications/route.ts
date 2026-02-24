@@ -1,10 +1,11 @@
+import { NextRequest } from "next/server";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { db } from "@/lib/db";
 import { invoices, contracts } from "@/lib/db/schema";
 import { and, eq, lt, lte, sql } from "drizzle-orm";
 import { success } from "@/lib/utils/api-response";
 import { getObligationsForYear } from "@/lib/services/obligation.service";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export interface AppNotification {
   id: string;
@@ -16,7 +17,7 @@ export interface AppNotification {
   date: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const notifications: AppNotification[] = [];
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
@@ -25,7 +26,12 @@ export async function GET() {
   const in30Days = new Date(today);
   in30Days.setDate(today.getDate() + 30);
 
+  const user = await getAuthUser();
+  if (!user) return success([]);
+
   try {
+    const orgId = await resolveOrgId(request, user.id);
+
     // 1. Overdue invoices
     const overdueInvoices = await db
       .select({
@@ -37,7 +43,7 @@ export async function GET() {
       .from(invoices)
       .where(
         and(
-          eq(invoices.organizationId, DEFAULT_ORG_ID),
+          eq(invoices.organizationId, orgId),
           sql`${invoices.status} IN ('sent', 'viewed', 'partially_paid')`,
           lt(invoices.dueDate, todayStr)
         )
@@ -70,7 +76,7 @@ export async function GET() {
       .from(invoices)
       .where(
         and(
-          eq(invoices.organizationId, DEFAULT_ORG_ID),
+          eq(invoices.organizationId, orgId),
           sql`${invoices.status} IN ('sent', 'viewed', 'partially_paid')`,
           sql`${invoices.dueDate} >= ${todayStr}`,
           lte(invoices.dueDate, in7Days.toISOString().split("T")[0])
@@ -104,7 +110,7 @@ export async function GET() {
       .from(contracts)
       .where(
         and(
-          eq(contracts.organizationId, DEFAULT_ORG_ID),
+          eq(contracts.organizationId, orgId),
           eq(contracts.status, "active"),
           eq(contracts.autoRenew, true),
           sql`(${contracts.endDate}::date - ${contracts.renewalNoticeDays} * interval '1 day') <= ${in30Days.toISOString().split("T")[0]}::date`,
@@ -131,7 +137,7 @@ export async function GET() {
     // 4. Fiscal obligations due in 30 days
     try {
       const year = today.getFullYear();
-      const fiscalResult = await getObligationsForYear(year, DEFAULT_ORG_ID);
+      const fiscalResult = await getObligationsForYear(year, orgId);
       for (const obl of fiscalResult.obligations) {
         if (obl.status !== "pending") continue;
         const dueDateObj = new Date(obl.dueDate);

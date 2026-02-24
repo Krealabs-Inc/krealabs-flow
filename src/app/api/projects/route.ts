@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { listProjects, createProject } from "@/lib/services/project.service";
 import { createProjectSchema } from "@/lib/validators/project.validator";
 import { success, error, paginated } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -18,8 +17,9 @@ export async function GET(request: NextRequest) {
   const clientId = searchParams.get("clientId") || undefined;
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
     const result = await listProjects({
-      organizationId: DEFAULT_ORG_ID,
+      organizationId: orgId,
       page,
       limit,
       search,
@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const project = await createProject(parsed.data, DEFAULT_ORG_ID, user.id);
+    const orgId = await resolveOrgId(request, user.id);
+    const project = await createProject(parsed.data, orgId, user.id);
     return success(project, 201);
   } catch (err) {
     return error(err instanceof Error ? err.message : "Erreur interne", 500);

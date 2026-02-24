@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { listPayments, getTreasuryStats } from "@/lib/services/payment.service";
 import { recordPayment } from "@/lib/services/invoice.service";
 import { createPaymentSchema } from "@/lib/validators/payment.validator";
 import { success, error, paginated } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -14,9 +13,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
+
     // Treasury stats endpoint
     if (searchParams.get("stats") === "true") {
-      const stats = await getTreasuryStats(DEFAULT_ORG_ID);
+      const stats = await getTreasuryStats(orgId);
       return success(stats);
     }
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo") || undefined;
 
     const result = await listPayments({
-      organizationId: DEFAULT_ORG_ID,
+      organizationId: orgId,
       page,
       limit,
       invoiceId,
@@ -54,12 +55,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const orgId = await resolveOrgId(request, user.id);
     const result = await recordPayment(
       parsed.data.invoiceId,
       parsed.data.amount,
       parsed.data.method,
       parsed.data.paymentDate,
-      DEFAULT_ORG_ID,
+      orgId,
       user.id,
       parsed.data.reference,
       parsed.data.notes

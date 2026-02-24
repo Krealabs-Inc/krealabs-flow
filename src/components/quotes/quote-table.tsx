@@ -25,9 +25,11 @@ import {
   FileCheck,
   Send,
   Trash2,
+  Building2,
 } from "lucide-react";
 import { QuoteStatusBadge } from "./quote-status-badge";
 import type { Quote } from "@/types/quote";
+import { useOrg } from "@/contexts/org-context";
 
 interface QuoteTableProps {
   quotes: Quote[];
@@ -43,6 +45,8 @@ const fmt = (val: string | null) =>
 
 export function QuoteTable({ quotes, onAction, onDelete }: QuoteTableProps) {
   const router = useRouter();
+  const { orgs, currentOrg } = useOrg();
+  const isMultiOrg = orgs.length > 1;
 
   if (quotes.length === 0) {
     return (
@@ -79,8 +83,14 @@ export function QuoteTable({ quotes, onAction, onDelete }: QuoteTableProps) {
               className="cursor-pointer"
               onClick={() => router.push(`/quotes/${quote.id}`)}
             >
-              <TableCell className="font-mono font-medium">
-                {quote.quoteNumber}
+              <TableCell>
+                <span className="font-mono font-medium">{quote.quoteNumber}</span>
+                {isMultiOrg && currentOrg && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{currentOrg.name}</span>
+                  </div>
+                )}
               </TableCell>
               <TableCell>{quote.reference || "—"}</TableCell>
               <TableCell>

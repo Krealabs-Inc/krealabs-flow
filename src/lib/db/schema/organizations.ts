@@ -46,6 +46,10 @@ export const organizations = pgTable("organizations", {
   legalMentions: text("legal_mentions"),
   quoteTerms: text("quote_terms"),
 
+  legalForm: varchar("legal_form", { length: 50 }).default("autre"),
+  tvaRegime: varchar("tva_regime", { length: 50 }).default("reel_simplifie"),
+  capitalSocial: decimal("capital_social", { precision: 15, scale: 2 }),
+
   plan: varchar("plan", { length: 50 }).default("free"),
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
 

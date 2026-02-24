@@ -1,13 +1,12 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import {
   markDeclared,
   markPaid,
   refreshDeclaration,
 } from "@/lib/services/declaration.service";
 import { success, error } from "@/lib/utils/api-response";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function PUT(
   request: NextRequest,
@@ -30,19 +29,20 @@ export async function PUT(
   }
 
   try {
+    const orgId = await getPrimaryOrgId(user.id);
     switch (body.action) {
       case "mark_declared": {
-        const updated = await markDeclared(id, DEFAULT_ORG_ID, body.notes);
+        const updated = await markDeclared(id, orgId, body.notes);
         if (!updated) return error("Déclaration non trouvée", 404);
         return success(updated);
       }
       case "mark_paid": {
-        const updated = await markPaid(id, DEFAULT_ORG_ID);
+        const updated = await markPaid(id, orgId);
         if (!updated) return error("Déclaration non trouvée", 404);
         return success(updated);
       }
       case "refresh": {
-        const updated = await refreshDeclaration(id, DEFAULT_ORG_ID);
+        const updated = await refreshDeclaration(id, orgId);
         if (!updated) return error("Déclaration non trouvée", 404);
         return success(updated);
       }

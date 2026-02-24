@@ -16,9 +16,11 @@ import {
   CalendarDays,
   FileBarChart2,
   CalendarClock,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OrgSwitcher } from "./org-switcher";
 
 interface NavItem {
   label: string;
@@ -41,6 +43,7 @@ const navigation: NavItem[] = [
 ];
 
 const bottomNavigation: NavItem[] = [
+  { label: "Mes entreprises", href: "/organizations", icon: Building2 },
   { label: "Paramètres", href: "/settings", icon: Settings },
 ];
 
@@ -64,6 +67,10 @@ export function Sidebar() {
               <span className="text-sm font-medium text-muted-foreground">Flow</span>
           </Link>
       </div>
+
+        <div className="px-3 py-3 border-b">
+          <OrgSwitcher />
+        </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navigation.map((item) => {

@@ -1,13 +1,11 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveOrgId } from "@/lib/auth/resolve-org-id";
 import { success, error } from "@/lib/utils/api-response";
 import {
   getObligationsForYear,
   upsertFiscalConfig,
-  getOrCreateFiscalConfig,
 } from "@/lib/services/obligation.service";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 /**
  * GET /api/fiscal?year=2027
@@ -29,7 +27,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await getObligationsForYear(year, DEFAULT_ORG_ID);
+    const orgId = await resolveOrgId(request, user.id);
+    const result = await getObligationsForYear(year, orgId);
     // Sérialiser les Dates en ISO string pour JSON
     return success({
       year: result.year,
@@ -60,7 +59,8 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
 
   try {
-    const updated = await upsertFiscalConfig(DEFAULT_ORG_ID, body);
+    const orgId = await resolveOrgId(request, user.id);
+    const updated = await upsertFiscalConfig(orgId, body);
     return success({
       ...updated,
       creationDate: updated.creationDate.toISOString(),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useOrg } from "@/contexts/org-context";
 import {
   FileBarChart2,
   CheckCircle,
@@ -201,6 +202,7 @@ function QuarterCard({ declaration, onAction, loadingId }: QuarterCardProps) {
 }
 
 export default function DeclarationsPage() {
+  const { currentOrgId } = useOrg();
   const [declarations, setDeclarations] = useState<TvaDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -208,7 +210,7 @@ export default function DeclarationsPage() {
   const fetchDeclarations = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/declarations");
+      const res = await fetch(`/api/declarations?orgId=${currentOrgId}`);
       const text = await res.text();
       if (!text) {
         setLoading(false);
@@ -223,7 +225,7 @@ export default function DeclarationsPage() {
       // DB not ready
     }
     setLoading(false);
-  }, []);
+  }, [currentOrgId]);
 
   useEffect(() => {
     fetchDeclarations();

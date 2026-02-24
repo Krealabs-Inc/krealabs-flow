@@ -83,6 +83,8 @@ export const invoices = pgTable(
     lastReminderAt: timestamp("last_reminder_at", { withTimezone: true }),
     reminderCount: integer("reminder_count").default(0),
 
+    issuingOrgId: uuid("issuing_org_id").references(() => organizations.id),
+
     createdBy: uuid("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

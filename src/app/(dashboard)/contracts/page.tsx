@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useOrg } from "@/contexts/org-context";
 import { useRouter } from "next/navigation";
 import { Search, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function ContractsPage() {
+  const { currentOrgId } = useOrg();
   const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,7 @@ export default function ContractsPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
 
       try {
+        params.set("orgId", currentOrgId);
         const res = await fetch(`/api/contracts?${params}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
@@ -70,7 +73,7 @@ export default function ContractsPage() {
       }
       setLoading(false);
     },
-    [search, statusFilter]
+    [search, statusFilter, currentOrgId]
   );
 
   useEffect(() => {

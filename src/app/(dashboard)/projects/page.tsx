@@ -17,8 +17,10 @@ import { projectStatusLabels } from "@/types/project";
 import type { Project } from "@/types/project";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 
 export default function ProjectsPage() {
+  const { currentOrgId } = useOrg();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,8 @@ export default function ProjectsPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
 
       try {
-        const res = await fetch(`/api/projects?${params}`);
+        params.set("orgId", currentOrgId);
+      const res = await fetch(`/api/projects?${params}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
         const data: PaginatedResponse<Project> = JSON.parse(text);
@@ -62,7 +65,7 @@ export default function ProjectsPage() {
       }
       setLoading(false);
     },
-    [search, statusFilter]
+    [search, statusFilter, currentOrgId]
   );
 
   useEffect(() => {

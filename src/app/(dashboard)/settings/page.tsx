@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Save, Building2, Landmark, FileText, Palette, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +9,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+interface OrgSummary {
+  id: string;
+  name: string;
+}
 
 interface OrgData {
   id: string;
@@ -47,6 +60,11 @@ interface OrgData {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
+  const orgIdParam = searchParams.get("orgId");
+
+  const [orgs, setOrgs] = useState<OrgSummary[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(orgIdParam);
   const [data, setData] = useState<OrgData | null>(null);
   const [initialData, setInitialData] = useState<OrgData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,10 +72,27 @@ export default function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
 
+  // Load list of orgs for the selector
+  useEffect(() => {
+    async function loadOrgs() {
+      try {
+        const res = await fetch("/api/user/organizations");
+        const json = await res.json();
+        if (json.success) setOrgs(json.data.map((o: OrgSummary) => ({ id: o.id, name: o.name })));
+      } catch { /* silent */ }
+    }
+    loadOrgs();
+  }, []);
+
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      setLoadError(false);
       try {
-        const res = await fetch("/api/organizations");
+        const url = selectedOrgId
+          ? `/api/organizations?orgId=${selectedOrgId}`
+          : "/api/organizations";
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         if (!text) throw new Error("Empty response");
@@ -74,7 +109,7 @@ export default function SettingsPage() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [selectedOrgId]);
 
   const isDirty = JSON.stringify(data) !== JSON.stringify(initialData);
 
@@ -88,7 +123,10 @@ export default function SettingsPage() {
     setSaveStatus("saving");
     setSaveError("");
     try {
-      const res = await fetch("/api/organizations", {
+      const url = selectedOrgId
+        ? `/api/organizations?orgId=${selectedOrgId}`
+        : "/api/organizations";
+      const res = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -109,7 +147,7 @@ export default function SettingsPage() {
       );
       setSaveStatus("error");
     }
-  }, [data]);
+  }, [data, selectedOrgId]);
 
   // Keyboard shortcut: Cmd/Ctrl + S
   useEffect(() => {
@@ -161,6 +199,26 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">
             Configurez votre entreprise, vos coordonnées bancaires et vos préférences de facturation.
           </p>
+          {orgs.length > 1 && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Configurer :</span>
+              <Select
+                value={selectedOrgId ?? data?.id ?? ""}
+                onValueChange={(v) => setSelectedOrgId(v)}
+              >
+                <SelectTrigger className="w-64 h-8 text-sm">
+                  <SelectValue placeholder="Choisir une entreprise" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgs.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {saveStatus === "error" && (

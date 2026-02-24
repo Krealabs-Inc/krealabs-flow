@@ -25,6 +25,7 @@ export const createQuoteSchema = z.object({
   terms: z.string().optional(),
   notes: z.string().optional(),
   templateId: z.string().uuid().optional(),
+  issuingOrgId: z.string().uuid().optional(),
   lines: z.array(quoteLineSchema).min(1, "Au moins une ligne est requise"),
 });
 

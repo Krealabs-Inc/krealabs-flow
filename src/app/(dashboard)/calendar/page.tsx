@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useOrg } from "@/contexts/org-context";
 import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,7 @@ function statusLabel(status: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
+  const { currentOrgId } = useOrg();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -147,7 +149,7 @@ export default function CalendarPage() {
   const fetchEvents = useCallback(async (ms: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/calendar?month=${ms}`);
+      const res = await fetch(`/api/calendar?month=${ms}&orgId=${currentOrgId}`);
       if (!res.ok) return;
       const json = (await res.json()) as { success: boolean; data: CalendarEvent[] };
       if (json.success) setEvents(json.data);
@@ -156,7 +158,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentOrgId]);
 
   useEffect(() => {
     fetchEvents(monthStr);

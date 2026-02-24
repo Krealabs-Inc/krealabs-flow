@@ -46,6 +46,10 @@ export interface Quote {
   createdAt: string | null;
   updatedAt: string | null;
   lines: QuoteLine[];
+  // joined fields (optional, returned by API when available)
+  issuingOrgId?: string | null;
+  issuingOrgName?: string | null;
+  clientName?: string | null;
 }
 
 export type QuoteStatus =

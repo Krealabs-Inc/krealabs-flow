@@ -16,6 +16,7 @@ import { QuoteTable } from "@/components/quotes/quote-table";
 import type { Quote } from "@/types/quote";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Tous les statuts" },
@@ -28,6 +29,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function QuotesPage() {
+  const { currentOrgId } = useOrg();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -59,7 +61,8 @@ export default function QuotesPage() {
       if (status !== "all") params.set("status", status);
 
       try {
-        const res = await fetch(`/api/quotes?${params}`);
+        params.set("orgId", currentOrgId);
+      const res = await fetch(`/api/quotes?${params}`);
         const text = await res.text();
         if (!text) { setLoading(false); return; }
         const data: PaginatedResponse<Quote> = JSON.parse(text);
@@ -72,7 +75,7 @@ export default function QuotesPage() {
       }
       setLoading(false);
     },
-    []
+    [currentOrgId]
   );
 
   useEffect(() => {

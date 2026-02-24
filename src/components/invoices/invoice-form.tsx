@@ -24,6 +24,7 @@ import { QuoteLineEditor } from "@/components/quotes/quote-line-editor";
 import type { Invoice } from "@/types/invoice";
 import type { QuoteLineFormData } from "@/types/quote";
 import type { Client } from "@/types";
+import { useOrg } from "@/contexts/org-context";
 
 interface InvoiceFormProps {
   invoice?: Invoice;
@@ -36,12 +37,22 @@ const INVOICE_TYPE_OPTIONS = [
   { value: "recurring", label: "Facture récurrente" },
 ] as const;
 
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
 export function InvoiceForm({ invoice }: InvoiceFormProps) {
   const router = useRouter();
+  const { currentOrgId } = useOrg();
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [orgs, setOrgs] = useState<OrgOption[]>([]);
   const [clientId, setClientId] = useState(invoice?.clientId || "");
+  const [issuingOrgId, setIssuingOrgId] = useState<string>(
+    (invoice as any)?.issuingOrgId || currentOrgId || ""
+  );
   const [invoiceType, setInvoiceType] = useState<string>(
     invoice?.type || "standard"
   );
@@ -82,12 +93,24 @@ export function InvoiceForm({ invoice }: InvoiceFormProps) {
   const isEditing = !!invoice;
 
   useEffect(() => {
-    async function loadClients() {
-      const res = await fetch("/api/clients?limit=100");
-      const data = await res.json();
-      if (data.success) setClients(data.data);
+    async function loadData() {
+      const [clientsRes, orgsRes] = await Promise.all([
+        fetch("/api/clients?limit=100"),
+        fetch("/api/user/organizations"),
+      ]);
+      const clientsJson = await clientsRes.json();
+      const orgsJson = await orgsRes.json();
+      if (clientsJson.success) setClients(clientsJson.data);
+      if (orgsJson.success) {
+        setOrgs(orgsJson.data.map((o: OrgOption) => ({ id: o.id, name: o.name })));
+        // Set default issuingOrgId to primary org if not editing
+        if (!invoice && !issuingOrgId && orgsJson.data.length > 0) {
+          const primary = orgsJson.data.find((o: any) => o.isPrimary) ?? orgsJson.data[0];
+          setIssuingOrgId(primary.id);
+        }
+      }
     }
-    loadClients();
+    loadData();
   }, []);
 
   // Compute totals
@@ -121,6 +144,7 @@ export function InvoiceForm({ invoice }: InvoiceFormProps) {
     const data = {
       clientId,
       type: invoiceType,
+      issuingOrgId: issuingOrgId || undefined,
       reference: (formData.get("reference") as string) || undefined,
       issueDate: (formData.get("issueDate") as string) || undefined,
       dueDate: (formData.get("dueDate") as string) || undefined,
@@ -173,6 +197,23 @@ export function InvoiceForm({ invoice }: InvoiceFormProps) {
           <CardTitle>Informations générales</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          {orgs.length > 1 && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>Émettre depuis</Label>
+              <Select value={issuingOrgId} onValueChange={setIssuingOrgId}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Sélectionner l'entreprise émettrice" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgs.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Client *</Label>
             <Select value={clientId} onValueChange={setClientId} required>

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { getPrimaryOrgId } from "@/lib/auth/get-user-orgs";
 import { getInvoicePdfData, getQuotePdfData } from "@/lib/services/pdf.service";
 import { renderToStream } from "@react-pdf/renderer";
 import { InvoicePdf } from "@/components/pdf/invoice-pdf";
 import { QuotePdf } from "@/components/pdf/quote-pdf";
-
-const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -25,8 +24,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const orgId = await getPrimaryOrgId(user.id);
+
     if (type === "invoice") {
-      const data = await getInvoicePdfData(id, DEFAULT_ORG_ID);
+      const data = await getInvoicePdfData(id, orgId);
       if (!data) {
         return NextResponse.json(
           { error: "Facture non trouvée" },
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "quote") {
-      const data = await getQuotePdfData(id, DEFAULT_ORG_ID);
+      const data = await getQuotePdfData(id, orgId);
       if (!data) {
         return NextResponse.json(
           { error: "Devis non trouvé" },
