@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Allow access to handler routes (sign-in, sign-up, etc.)
   if (request.nextUrl.pathname.startsWith("/handler")) {
     return NextResponse.next();
