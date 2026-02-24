@@ -26,6 +26,7 @@ import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { PaymentDialog } from "@/components/invoices/payment-dialog";
 import { WorkflowTracker } from "@/components/shared/workflow-tracker";
 import { invoiceTypeLabels, type Invoice, type InvoiceType } from "@/types/invoice";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { ApiResponse, Client } from "@/types";
 
 const fmt = (val: string | null) =>
@@ -46,6 +47,14 @@ export default function InvoiceDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   async function load() {
     const res = await fetch(`/api/invoices/${params.id}`);
@@ -65,26 +74,64 @@ export default function InvoiceDetailPage() {
   }, [params.id]);
 
   async function handleAction(action: string) {
-    if (action === "cancel" && !confirm("Annuler cette facture ?")) return;
-    if (action === "delete") {
-      if (!confirm("Supprimer cette facture ?")) return;
-      await fetch(`/api/invoices/${params.id}`, { method: "DELETE" });
-      router.push("/invoices");
+    if (action === "cancel") {
+      setConfirmState({
+        open: true,
+        title: "Annuler cette facture",
+        description: "Êtes-vous sûr de vouloir annuler cette facture ? Cette action est irréversible.",
+        confirmText: "Annuler la facture",
+        variant: "destructive",
+        onConfirm: async () => {
+          const res = await fetch(`/api/invoices/${params.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "cancel" }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setInvoice(data.data);
+          }
+        },
+      });
       return;
     }
-    if (action === "create_final") {
-      if (!confirm("Créer la facture de solde pour le restant ?")) return;
-      const res = await fetch(`/api/invoices/${params.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create_final" }),
+
+    if (action === "delete") {
+      setConfirmState({
+        open: true,
+        title: "Supprimer cette facture",
+        description: "Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.",
+        confirmText: "Supprimer",
+        variant: "destructive",
+        onConfirm: async () => {
+          await fetch(`/api/invoices/${params.id}`, { method: "DELETE" });
+          router.push("/invoices");
+        },
       });
-      const data = await res.json();
-      if (data.success) {
-        router.push(`/invoices/${data.data.id}`);
-      } else {
-        alert(data.error || "Erreur lors de la création de la facture de solde");
-      }
+      return;
+    }
+
+    if (action === "create_final") {
+      setConfirmState({
+        open: true,
+        title: "Créer la facture de solde",
+        description: "Êtes-vous sûr de vouloir créer la facture de solde pour le restant ?",
+        confirmText: "Créer",
+        variant: "default",
+        onConfirm: async () => {
+          const res = await fetch(`/api/invoices/${params.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "create_final" }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            router.push(`/invoices/${data.data.id}`);
+          } else {
+            alert(data.error || "Erreur lors de la création de la facture de solde");
+          }
+        },
+      });
       return;
     }
 
@@ -488,6 +535,19 @@ export default function InvoiceDetailPage() {
           invoiceNumber={invoice.invoiceNumber}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

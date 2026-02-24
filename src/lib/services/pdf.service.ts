@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { organizations, clients, invoices, quotes } from "@/lib/db/schema";
+import { organizations, clients } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getInvoice } from "./invoice.service";
 import { getQuote } from "./quote.service";
