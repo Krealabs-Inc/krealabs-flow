@@ -1,0 +1,17 @@
+import { getAuthUser } from "@/lib/auth/get-user";
+import { listDeclarations } from "@/lib/services/declaration.service";
+import { success, error } from "@/lib/utils/api-response";
+
+const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
+
+export async function GET() {
+  const user = await getAuthUser();
+  if (!user) return error("Non autorisé", 401);
+
+  try {
+    const declarations = await listDeclarations(DEFAULT_ORG_ID);
+    return success(declarations);
+  } catch (err) {
+    return error(err instanceof Error ? err.message : "Erreur interne", 500);
+  }
+}
