@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -17,17 +18,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, Check, ChevronDown } from "lucide-react";
 import type { Client, ClientPipelineStage } from "@/types";
 import { CLIENT_PIPELINE_LABELS, CLIENT_PIPELINE_COLORS } from "@/types";
+
+const PIPELINE_STAGES: ClientPipelineStage[] = [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+];
 
 interface ClientTableProps {
   clients: Client[];
   onDelete?: (id: string) => void;
+  onPipelineChange?: (id: string, stage: ClientPipelineStage) => Promise<void>;
 }
 
-export function ClientTable({ clients, onDelete }: ClientTableProps) {
+export function ClientTable({ clients, onDelete, onPipelineChange }: ClientTableProps) {
   const router = useRouter();
+  const [updating, setUpdating] = useState<string | null>(null);
 
   if (clients.length === 0) {
     return (
@@ -83,15 +96,48 @@ export function ClientTable({ clients, onDelete }: ClientTableProps) {
                 </TableCell>
                 <TableCell>{client.city || "—"}</TableCell>
                 <TableCell>
-                  {stage ? (
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CLIENT_PIPELINE_COLORS[stage]}`}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${
+                          stage
+                            ? CLIENT_PIPELINE_COLORS[stage]
+                            : "bg-muted text-muted-foreground"
+                        } ${updating === client.id ? "opacity-50" : ""}`}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={updating === client.id}
+                      >
+                        {stage ? CLIENT_PIPELINE_LABELS[stage] : "—"}
+                        <ChevronDown className="h-2.5 w-2.5 shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className="w-48"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {CLIENT_PIPELINE_LABELS[stage]}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
+                      {PIPELINE_STAGES.map((s) => (
+                        <DropdownMenuItem
+                          key={s}
+                          className="flex items-center justify-between cursor-pointer"
+                          onSelect={async () => {
+                            if (s === stage || !onPipelineChange) return;
+                            setUpdating(client.id);
+                            await onPipelineChange(client.id, s);
+                            setUpdating(null);
+                          }}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span
+                              className={`h-2 w-2 rounded-full ${CLIENT_PIPELINE_COLORS[s].split(" ")[0]}`}
+                            />
+                            {CLIENT_PIPELINE_LABELS[s]}
+                          </span>
+                          {s === stage && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

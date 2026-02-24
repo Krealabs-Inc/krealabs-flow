@@ -77,6 +77,23 @@ export default function ClientsPage() {
     fetchClients(1, search, stageFilter);
   }, [fetchClients, search, stageFilter]);
 
+  async function handlePipelineChange(id: string, stage: ClientPipelineStage) {
+    // Optimistic update
+    setClients((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, pipelineStage: stage } : c))
+    );
+    try {
+      await fetch(`/api/clients/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pipelineStage: stage }),
+      });
+    } catch {
+      // Revert on failure
+      fetchClients(pagination.page, search, stageFilter);
+    }
+  }
+
   function handleDelete(id: string) {
     setConfirmState({
       open: true,
@@ -149,7 +166,7 @@ export default function ClientsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <ClientTable clients={clients} onDelete={handleDelete} />
+        <ClientTable clients={clients} onDelete={handleDelete} onPipelineChange={handlePipelineChange} />
       )}
 
       {pagination.totalPages > 1 && (
