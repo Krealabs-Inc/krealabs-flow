@@ -24,6 +24,8 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
+    // Ensure org exists before updating
+    await getOrCreateDefaultOrg(DEFAULT_ORG_ID);
     const updated = await updateOrganization(DEFAULT_ORG_ID, body);
     return NextResponse.json(success(updated));
   } catch (e) {
