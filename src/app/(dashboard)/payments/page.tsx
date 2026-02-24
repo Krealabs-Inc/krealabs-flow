@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -98,11 +98,21 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Paiements</h1>
-        <p className="text-muted-foreground">
-          {pagination.total} paiement(s)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Paiements</h1>
+          <p className="text-muted-foreground">
+            {pagination.total} paiement(s)
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open("/api/export/payments", "_blank")}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter CSV
+        </Button>
       </div>
 
       <div className="flex items-center gap-4">
