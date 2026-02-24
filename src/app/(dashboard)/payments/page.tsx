@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { PaymentTable } from "@/components/payments/payment-table";
 import type { Payment } from "@/types/payment";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +38,14 @@ export default function PaymentsPage() {
     limit: 20,
     totalPages: 0,
   });
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const fetchPayments = useCallback(
     async (page = 1) => {
@@ -69,14 +78,22 @@ export default function PaymentsPage() {
     fetchPayments();
   }, [fetchPayments]);
 
-  async function handleRefund(id: string) {
-    if (!confirm("Rembourser ce paiement ?")) return;
-    await fetch(`/api/payments/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "refund" }),
+  function handleRefund(id: string) {
+    setConfirmState({
+      open: true,
+      title: "Rembourser ce paiement",
+      description: "Voulez-vous vraiment rembourser ce paiement ?",
+      confirmText: "Rembourser",
+      variant: "destructive",
+      onConfirm: async () => {
+        await fetch(`/api/payments/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "refund" }),
+        });
+        fetchPayments(pagination.page);
+      },
     });
-    fetchPayments(pagination.page);
   }
 
   return (
@@ -151,6 +168,19 @@ export default function PaymentsPage() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

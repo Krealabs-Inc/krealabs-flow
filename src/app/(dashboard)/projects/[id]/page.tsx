@@ -23,6 +23,7 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/types/project";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { ApiResponse } from "@/types";
 import {
   Select,
@@ -40,6 +41,14 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   async function load() {
     const res = await fetch(`/api/projects/${params.id}`);
@@ -73,10 +82,18 @@ export default function ProjectDetailPage() {
     if (data.success) setProject(data.data);
   }
 
-  async function handleDelete() {
-    if (!confirm("Supprimer ce projet ?")) return;
-    await fetch(`/api/projects/${params.id}`, { method: "DELETE" });
-    router.push("/projects");
+  function handleDelete() {
+    setConfirmState({
+      open: true,
+      title: "Supprimer ce projet",
+      description: "Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+      onConfirm: async () => {
+        await fetch(`/api/projects/${params.id}`, { method: "DELETE" });
+        router.push("/projects");
+      },
+    });
   }
 
   if (loading) {
@@ -314,6 +331,19 @@ export default function ProjectDetailPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

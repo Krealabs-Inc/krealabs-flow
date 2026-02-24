@@ -12,6 +12,7 @@ export async function GET() {
     const stats = await getDashboardStats(DEFAULT_ORG_ID);
     return success(stats);
   } catch (err) {
+    console.error(err);
     return error(
       err instanceof Error ? err.message : "Erreur de chargement du dashboard",
       500

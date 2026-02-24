@@ -59,3 +59,47 @@ export interface TreasuryStats {
   monthlyRevenue: { month: string; amount: number }[];
   recentPayments: Payment[];
 }
+
+// Extended treasury stats for the dedicated treasury page
+export interface TreasuryMonthlyData {
+  month: string;   // "2026-01"
+  label: string;   // "Jan."
+  received: number;
+}
+
+export interface TreasuryTopClient {
+  clientId: string | null;
+  clientName: string;
+  totalPaid: number;
+}
+
+export interface TreasuryUnpaidInvoice {
+  id: string;
+  invoiceNumber: string;
+  dueDate: string | null;
+  amountDue: string | null;
+  status: string;
+  clientName: string;
+}
+
+export interface TreasuryForecastItem {
+  dueDate: string | null;
+  amountDue: string | null;
+  invoiceNumber: string;
+  clientName: string;
+}
+
+export interface TreasurySummary {
+  receivedThisMonth: number;
+  pending: number;
+  overdue: number;
+  mrr: number;
+}
+
+export interface TreasuryPageStats {
+  summary: TreasurySummary;
+  monthly: TreasuryMonthlyData[];
+  topClients: TreasuryTopClient[];
+  unpaidInvoices: TreasuryUnpaidInvoice[];
+  forecast: TreasuryForecastItem[];
+}

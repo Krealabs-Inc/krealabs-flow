@@ -15,6 +15,7 @@ import {
 import { ProjectTable } from "@/components/projects/project-table";
 import { projectStatusLabels } from "@/types/project";
 import type { Project } from "@/types/project";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
 
 export default function ProjectsPage() {
@@ -29,6 +30,14 @@ export default function ProjectsPage() {
     limit: 20,
     totalPages: 0,
   });
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const fetchProjects = useCallback(
     async (page = 1) => {
@@ -60,10 +69,18 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [fetchProjects]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Supprimer ce projet ?")) return;
-    await fetch(`/api/projects/${id}`, { method: "DELETE" });
-    fetchProjects(pagination.page);
+  function handleDelete(id: string) {
+    setConfirmState({
+      open: true,
+      title: "Supprimer ce projet",
+      description: "Cette action est irréversible. Voulez-vous vraiment supprimer ce projet ?",
+      confirmText: "Supprimer",
+      variant: "destructive",
+      onConfirm: async () => {
+        await fetch(`/api/projects/${id}`, { method: "DELETE" });
+        fetchProjects(pagination.page);
+      },
+    });
   }
 
   return (
@@ -138,6 +155,19 @@ export default function ProjectsPage() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }
