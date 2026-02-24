@@ -49,43 +49,21 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - internal
+      internal:
+        aliases:
+          - db
     restart: unless-stopped
 
   # =============================================
-  # Supabase Studio (UI pour voir/modifier la DB)
+  # Adminer (UI pour voir/modifier la DB)
   # Accessible sur http://localhost:8082
   # =============================================
-  supabase-studio:
-    image: supabase/studio:latest
-    environment:
-      STUDIO_PG_META_URL: http://supabase-meta:8080
-      SUPABASE_URL: http://localhost:8082
-      NEXT_PUBLIC_ENABLE_LOGS: "false"
-      NEXT_ANALYTICS_BACKEND_PROVIDER: ""
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+  adminer:
+    image: adminer:latest
     ports:
-      - "${STUDIO_PORT:-8082}:3000"
-    depends_on:
-      supabase-meta:
-        condition: service_started
-    networks:
-      - internal
-    restart: unless-stopped
-
-  # =============================================
-  # Supabase pg-meta (API metadata pour Studio)
-  # =============================================
-  supabase-meta:
-    image: supabase/postgres-meta:v0.95.2
+      - "${STUDIO_PORT:-8082}:8080"
     environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: supabase-db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: ${POSTGRES_DB:-krealabs_flow}
-      PG_META_DB_USER: ${POSTGRES_USER:-krealabs}
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-krealabs}
+      ADMINER_DEFAULT_SERVER: supabase-db
     depends_on:
       supabase-db:
         condition: service_healthy

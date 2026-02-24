@@ -2,8 +2,8 @@ node_modules
 .next
 .git
 .gitignore
-.env
-.env
+.env.local
+.env.local
 *.md
 .idea
 .claude

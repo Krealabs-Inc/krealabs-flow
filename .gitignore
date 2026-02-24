@@ -42,6 +42,10 @@ yarn-error.log*
 # storage
 /storage
 
+# uploads (keep placeholder)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # vercel
 .vercel
 
