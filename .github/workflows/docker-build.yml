@@ -3,8 +3,6 @@ name: Docker Build
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build:
@@ -19,8 +17,8 @@ jobs:
           context: .
           push: false
           build-args: |
-            NEXT_PUBLIC_STACK_PROJECT_ID=ci-placeholder
-            NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=ci-placeholder
-            STACK_SECRET_SERVER_KEY=ci-placeholder
+            NEXT_PUBLIC_STACK_PROJECT_ID=00000000-0000-0000-0000-000000000000
+            NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=pck_ci_placeholder_000000000000000000000000000
+            STACK_SECRET_SERVER_KEY=ssk_ci_placeholder_000000000000000000000000000
           cache-from: type=gha
           cache-to: type=gha,mode=max

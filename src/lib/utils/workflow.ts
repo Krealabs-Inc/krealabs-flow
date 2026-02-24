@@ -188,7 +188,7 @@ export function getInvoiceWorkflow(invoice: {
 } {
   const relatedDocuments: { type: string; id: string | null }[] = [];
   let workflow: WorkflowType = "direct_invoice";
-  let nextSteps: string[] = [];
+  const nextSteps: string[] = [];
 
   if (invoice.quoteId) {
     relatedDocuments.push({ type: "quote", id: invoice.quoteId });
