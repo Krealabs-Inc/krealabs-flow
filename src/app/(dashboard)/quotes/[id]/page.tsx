@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuoteStatusBadge } from "@/components/quotes/quote-status-badge";
 import { WorkflowTracker } from "@/components/shared/workflow-tracker";
 import type { Quote } from "@/types/quote";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { ApiResponse, Client } from "@/types";
 
 const fmt = (val: string | null) =>
@@ -39,6 +40,14 @@ export default function QuoteDetailPage() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     async function load() {
@@ -57,13 +66,40 @@ export default function QuoteDetailPage() {
   }, [params.id]);
 
   async function handleAction(action: string) {
-    if (action === "delete" && !confirm("Supprimer ce devis ?")) return;
-    if (action === "convert" && !confirm("Convertir ce devis en facture ?"))
-      return;
-
     if (action === "delete") {
-      await fetch(`/api/quotes/${params.id}`, { method: "DELETE" });
-      router.push("/quotes");
+      setConfirmState({
+        open: true,
+        title: "Supprimer ce devis",
+        description: "Êtes-vous sûr de vouloir supprimer ce devis ? Cette action est irréversible.",
+        confirmText: "Supprimer",
+        variant: "destructive",
+        onConfirm: async () => {
+          await fetch(`/api/quotes/${params.id}`, { method: "DELETE" });
+          router.push("/quotes");
+        },
+      });
+      return;
+    }
+
+    if (action === "convert") {
+      setConfirmState({
+        open: true,
+        title: "Convertir en facture",
+        description: "Êtes-vous sûr de vouloir convertir ce devis en facture ?",
+        confirmText: "Convertir",
+        variant: "default",
+        onConfirm: async () => {
+          const res = await fetch(`/api/quotes/${params.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "convert" }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            router.push("/invoices");
+          }
+        },
+      });
       return;
     }
 
@@ -74,9 +110,7 @@ export default function QuoteDetailPage() {
     });
     const data = await res.json();
     if (data.success) {
-      if (action === "convert") {
-        router.push("/invoices");
-      } else if (action === "duplicate") {
+      if (action === "duplicate") {
         router.push(`/quotes/${data.data.id}`);
       } else {
         setQuote(data.data);
@@ -379,6 +413,19 @@ export default function QuoteDetailPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

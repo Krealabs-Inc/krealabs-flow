@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { quotes, quoteLines, invoices, invoiceLines } from "@/lib/db/schema";
-import { eq, and, desc, ilike, or, sql } from "drizzle-orm";
+import { eq, and, desc, ilike, or, inArray, sql } from "drizzle-orm";
 import { createAuditLog } from "./audit.service";
 import { generateQuoteNumber, generateInvoiceNumber } from "@/lib/utils/numbering";
 import type {
@@ -80,7 +80,16 @@ export async function listQuotes({
   const conditions = [eq(quotes.organizationId, organizationId)];
 
   if (status) {
-    conditions.push(eq(quotes.status, status as typeof quotes.status.enumValues[number]));
+    // "converted" is a UI alias for both partially and fully invoiced statuses
+    if (status === "converted") {
+      conditions.push(
+        inArray(quotes.status, ["partially_invoiced", "fully_invoiced"])
+      );
+    } else {
+      conditions.push(
+        eq(quotes.status, status as typeof quotes.status.enumValues[number])
+      );
+    }
   }
   if (clientId) {
     conditions.push(eq(quotes.clientId, clientId));
