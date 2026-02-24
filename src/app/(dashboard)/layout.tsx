@@ -1,3 +1,6 @@
+// All dashboard pages are authenticated — disable static prerendering at build time
+export const dynamic = "force-dynamic";
+
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 
