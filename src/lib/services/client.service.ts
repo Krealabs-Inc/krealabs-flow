@@ -6,12 +6,14 @@ import type {
   CreateClientInput,
   UpdateClientInput,
 } from "@/lib/validators/client.validator";
+import type { ClientPipelineStage } from "@/types";
 
 interface ListClientsParams {
   organizationId: string;
   page?: number;
   limit?: number;
   search?: string;
+  stage?: ClientPipelineStage;
 }
 
 export async function listClients({
@@ -19,6 +21,7 @@ export async function listClients({
   page = 1,
   limit = 20,
   search,
+  stage,
 }: ListClientsParams) {
   const offset = (page - 1) * limit;
 
@@ -36,6 +39,10 @@ export async function listClients({
         ilike(clients.contactEmail, `%${search}%`)
       )!
     );
+  }
+
+  if (stage) {
+    conditions.push(eq(clients.pipelineStage, stage));
   }
 
   const [data, countResult] = await Promise.all([

@@ -7,22 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Client } from "@/types";
+import type { Client, ClientPipelineStage } from "@/types";
+import { CLIENT_PIPELINE_LABELS } from "@/types";
 
 interface ClientFormProps {
   client?: Client;
 }
 
+const PIPELINE_STAGES: ClientPipelineStage[] = [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+];
+
 export function ClientForm({ client }: ClientFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pipelineStage, setPipelineStage] = useState<ClientPipelineStage>(
+    (client?.pipelineStage as ClientPipelineStage) ?? "prospect"
+  );
 
   const isEditing = !!client;
 
@@ -38,6 +59,9 @@ export function ClientForm({ client }: ClientFormProps) {
         data[key] = value.trim();
       }
     });
+
+    // Add pipelineStage from state (not from FormData since it's a controlled Select)
+    data.pipelineStage = pipelineStage;
 
     const url = isEditing ? `/api/clients/${client.id}` : "/api/clients";
     const method = isEditing ? "PUT" : "POST";
@@ -111,6 +135,24 @@ export function ClientForm({ client }: ClientFormProps) {
               name="tvaNumber"
               defaultValue={client?.tvaNumber ?? ""}
             />
+          </div>
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="pipelineStage">Étape pipeline</Label>
+            <Select
+              value={pipelineStage}
+              onValueChange={(v) => setPipelineStage(v as ClientPipelineStage)}
+            >
+              <SelectTrigger id="pipelineStage">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PIPELINE_STAGES.map((stage) => (
+                  <SelectItem key={stage} value={stage}>
+                    {CLIENT_PIPELINE_LABELS[stage]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+const pipelineStageValues = [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+] as const;
+
 export const createClientSchema = z.object({
   companyName: z.string().min(1, "Le nom de l'entreprise est requis"),
   legalName: z.string().optional(),
@@ -25,6 +35,8 @@ export const createClientSchema = z.object({
   paymentTerms: z.coerce.number().int().positive().optional(),
   tvaRate: z.coerce.number().min(0).max(100).optional(),
   notes: z.string().optional(),
+
+  pipelineStage: z.enum(pipelineStageValues).optional(),
 });
 
 export const updateClientSchema = createClientSchema.partial();

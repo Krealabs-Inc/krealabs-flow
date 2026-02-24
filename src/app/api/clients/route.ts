@@ -3,8 +3,19 @@ import { getAuthUser } from "@/lib/auth/get-user";
 import { listClients, createClient } from "@/lib/services/client.service";
 import { createClientSchema } from "@/lib/validators/client.validator";
 import { success, error, paginated } from "@/lib/utils/api-response";
+import type { ClientPipelineStage } from "@/types";
 
 const DEFAULT_ORG_ID = "ab33997e-aa9b-4fcd-ab56-657971f81e8a";
+
+const VALID_STAGES: ClientPipelineStage[] = [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+];
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -14,6 +25,10 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const search = searchParams.get("search") || undefined;
+  const stageParam = searchParams.get("stage");
+  const stage = stageParam && VALID_STAGES.includes(stageParam as ClientPipelineStage)
+    ? (stageParam as ClientPipelineStage)
+    : undefined;
 
   try {
     const result = await listClients({
@@ -21,6 +36,7 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       search,
+      stage,
     });
     return paginated(result.data, result.total, result.page, result.limit);
   } catch (err) {
