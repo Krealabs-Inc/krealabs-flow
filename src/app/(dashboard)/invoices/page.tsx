@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -182,6 +182,14 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Factures</h1>
           <p className="text-muted-foreground">{pagination.total} facture(s)</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open("/api/export/invoices", "_blank")}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter CSV
+        </Button>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -100,10 +100,20 @@ export default function ClientsPage() {
             {pagination.total} client{pagination.total > 1 ? "s" : ""}
           </p>
         </div>
-        <Button onClick={() => router.push("/clients/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau client
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open("/api/export/clients", "_blank")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter CSV
+          </Button>
+          <Button onClick={() => router.push("/clients/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau client
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
