@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useUser } from "@stackframe/stack";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Header() {
   const user = useUser(); // hook client-safe, StackProvider présent
@@ -30,6 +31,8 @@ export function Header() {
         <div />
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
+
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-4 w-4" />
           </Button>
