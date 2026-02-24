@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Plus,
   Download,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,9 @@ export default function InvoiceDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
+  const [reminding, setReminding] = useState(false);
+  const [reminderCount, setReminderCount] = useState<number>(0);
+  const [lastReminderAt, setLastReminderAt] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -192,6 +196,22 @@ export default function InvoiceDetailPage() {
     );
   }
 
+  async function handleRemind() {
+    if (!invoice) return;
+    setReminding(true);
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}/remind`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setReminderCount(data.data.reminderCount ?? 0);
+        setLastReminderAt(data.data.lastReminderAt ?? null);
+      }
+    } catch {
+      // ignore
+    }
+    setReminding(false);
+  }
+
   if (!invoice) {
     return (
       <div className="text-center py-12">
@@ -209,6 +229,10 @@ export default function InvoiceDetailPage() {
   const canPay = ["sent", "viewed", "partially_paid", "overdue"].includes(
     invoice.status
   );
+
+  const canRemind = ["sent", "viewed", "partially_paid", "overdue"].includes(invoice.status);
+
+
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -247,6 +271,22 @@ export default function InvoiceDetailPage() {
             <Download className="mr-2 h-4 w-4" />
             Télécharger PDF
           </Button>
+          {canRemind && (
+            <Button
+              variant="outline"
+              onClick={handleRemind}
+              disabled={reminding}
+              className="relative"
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              {reminding ? "..." : "Envoyer relance"}
+              {reminderCount > 0 && (
+                <span className="ml-1 text-xs text-muted-foreground">
+                  ({reminderCount})
+                </span>
+              )}
+            </Button>
+          )}
           {invoice.type === "deposit" &&
            (invoice.status === "paid" || invoice.status === "partially_paid") && (
             <Button onClick={() => handleAction("create_final")}>
@@ -286,6 +326,19 @@ export default function InvoiceDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Reminder info */}
+      {reminderCount > 0 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+          <Bell className="h-4 w-4 shrink-0" />
+          <span>
+            {reminderCount} relance{reminderCount > 1 ? "s" : ""} envoyée{reminderCount > 1 ? "s" : ""}
+            {lastReminderAt && (
+              <> · dernière le {new Date(lastReminderAt).toLocaleDateString("fr-FR")}</>
+            )}
+          </span>
+        </div>
+      )}
 
       {/* Overdue warning */}
       {isOverdue && (
