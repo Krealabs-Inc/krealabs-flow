@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
-import { contracts, clients } from "@/lib/db/schema";
+import { contracts, clients, invoices, invoiceLines } from "@/lib/db/schema";
 import { eq, and, desc, ilike, or, sql } from "drizzle-orm";
 import { createAuditLog } from "./audit.service";
+import { generateInvoiceNumber } from "@/lib/utils/numbering";
 import type {
   CreateContractInput,
   UpdateContractInput,
@@ -359,6 +360,120 @@ export async function renewContract(
   });
 
   return getContract(renewed.id, organizationId);
+}
+
+// ---------------------------------------------------------------------------
+// Generate recurring invoice from contract
+// ---------------------------------------------------------------------------
+
+export async function generateContractInvoice(
+  id: string,
+  organizationId: string,
+  userId?: string
+) {
+  const contract = await getContract(id, organizationId);
+  if (!contract) throw new Error("Contrat non trouvé");
+
+  if (contract.status !== "active") {
+    throw new Error("Seuls les contrats actifs peuvent générer des factures");
+  }
+
+  // Calculate invoice amount based on billing frequency
+  const annualHt = parseFloat(contract.annualAmountHt ?? "0");
+  const frequencyDivisors: Record<string, number> = {
+    monthly: 12,
+    quarterly: 4,
+    semi_annual: 2,
+    annual: 1,
+  };
+  const divisor = frequencyDivisors[contract.billingFrequency ?? "annual"] ?? 1;
+  const periodAmountHt = annualHt / divisor;
+
+  const invoiceNumber = await generateInvoiceNumber(organizationId, "recurring");
+  const today = new Date().toISOString().split("T")[0];
+
+  // Due date: 30 days from today
+  const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  const [newInvoice] = await db
+    .insert(invoices)
+    .values({
+      organizationId,
+      clientId: contract.clientId,
+      contractId: id,
+      invoiceNumber,
+      type: "recurring",
+      status: "draft",
+      issueDate: today,
+      dueDate,
+      subtotalHt: periodAmountHt.toFixed(2),
+      totalTva: (periodAmountHt * 0.2).toFixed(2),
+      totalTtc: (periodAmountHt * 1.2).toFixed(2),
+      discountPercent: "0",
+      discountAmount: "0",
+      amountDue: (periodAmountHt * 1.2).toFixed(2),
+      amountPaid: "0",
+      createdBy: userId,
+    })
+    .returning();
+
+  // Insert a single line for the recurring period
+  const periodLabels: Record<string, string> = {
+    monthly: "mensuelle",
+    quarterly: "trimestrielle",
+    semi_annual: "semestrielle",
+    annual: "annuelle",
+  };
+  const periodLabel = periodLabels[contract.billingFrequency ?? "annual"] ?? "périodique";
+
+  await db.insert(invoiceLines).values({
+    invoiceId: newInvoice.id,
+    sortOrder: 0,
+    isSection: false,
+    description: `${contract.name} — Facturation ${periodLabel}`,
+    details: contract.description ?? undefined,
+    quantity: "1",
+    unit: "forfait",
+    unitPriceHt: periodAmountHt.toFixed(2),
+    tvaRate: "20",
+    totalHt: periodAmountHt.toFixed(2),
+    totalTva: (periodAmountHt * 0.2).toFixed(2),
+    totalTtc: (periodAmountHt * 1.2).toFixed(2),
+  });
+
+  // Calculate next billing date
+  const nextBillingDate = new Date(contract.nextBillingDate ?? today);
+  if (contract.billingFrequency === "monthly") {
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+  } else if (contract.billingFrequency === "quarterly") {
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 3);
+  } else if (contract.billingFrequency === "semi_annual") {
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 6);
+  } else {
+    nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+  }
+
+  await db
+    .update(contracts)
+    .set({
+      lastBilledDate: today,
+      nextBillingDate: nextBillingDate.toISOString().split("T")[0],
+      updatedAt: new Date(),
+    })
+    .where(and(eq(contracts.id, id), eq(contracts.organizationId, organizationId)));
+
+  await createAuditLog({
+    organizationId,
+    userId,
+    action: "create",
+    entityType: "invoice",
+    entityId: newInvoice.id,
+    newValues: { contractId: id, type: "recurring", invoiceNumber },
+  });
+
+  return newInvoice;
 }
 
 // ---------------------------------------------------------------------------

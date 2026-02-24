@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ContractTable } from "@/components/contracts/contract-table";
 import type { Contract } from "@/types/contract";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
 
 const STATUS_OPTIONS = [
@@ -37,6 +38,14 @@ export default function ContractsPage() {
     limit: 20,
     totalPages: 0,
   });
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const fetchContracts = useCallback(
     async (page = 1) => {
@@ -69,7 +78,24 @@ export default function ContractsPage() {
   }, [fetchContracts]);
 
   async function handleAction(id: string, action: string) {
-    if (action === "terminate" && !confirm("Résilier ce contrat ?")) return;
+    if (action === "terminate") {
+      setConfirmState({
+        open: true,
+        title: "Résilier ce contrat",
+        description: "Voulez-vous vraiment résilier ce contrat ? Cette action est irréversible.",
+        confirmText: "Résilier",
+        variant: "destructive",
+        onConfirm: async () => {
+          await fetch(`/api/contracts/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          });
+          fetchContracts(pagination.page);
+        },
+      });
+      return;
+    }
 
     await fetch(`/api/contracts/${id}`, {
       method: "PUT",
@@ -79,10 +105,18 @@ export default function ContractsPage() {
     fetchContracts(pagination.page);
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Supprimer ce contrat ?")) return;
-    await fetch(`/api/contracts/${id}`, { method: "DELETE" });
-    fetchContracts(pagination.page);
+  function handleDelete(id: string) {
+    setConfirmState({
+      open: true,
+      title: "Supprimer ce contrat",
+      description: "Cette action est irréversible. Voulez-vous vraiment supprimer ce contrat ?",
+      confirmText: "Supprimer",
+      variant: "destructive",
+      onConfirm: async () => {
+        await fetch(`/api/contracts/${id}`, { method: "DELETE" });
+        fetchContracts(pagination.page);
+      },
+    });
   }
 
   return (
@@ -160,6 +194,19 @@ export default function ContractsPage() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

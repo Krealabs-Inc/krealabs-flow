@@ -9,6 +9,7 @@ import {
   XCircle,
   Trash2,
   Edit,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   type Contract,
   type BillingFrequency,
 } from "@/types/contract";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { ApiResponse } from "@/types";
 
 const fmt = (val: string | null) =>
@@ -36,6 +38,14 @@ export default function ContractDetailPage() {
   const router = useRouter();
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     async function load() {
@@ -48,11 +58,58 @@ export default function ContractDetailPage() {
   }, [params.id]);
 
   async function handleAction(action: string) {
-    if (action === "terminate" && !confirm("Résilier ce contrat ?")) return;
+    if (action === "generate_invoice") {
+      setConfirmState({
+        open: true,
+        title: "Générer une facture",
+        description: `Cela va créer une facture récurrente pour la période en cours (${billingFrequencyLabels[contract?.billingFrequency as BillingFrequency] ?? "périodique"}) basée sur le montant du contrat.`,
+        confirmText: "Générer",
+        variant: "default",
+        onConfirm: async () => {
+          const res = await fetch(`/api/contracts/${params.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "generate_invoice" }),
+          });
+          const data = await res.json();
+          if (data.success) router.push(`/invoices/${data.data.id}`);
+        },
+      });
+      return;
+    }
+
+    if (action === "terminate") {
+      setConfirmState({
+        open: true,
+        title: "Résilier ce contrat",
+        description: "Êtes-vous sûr de vouloir résilier ce contrat ? Cette action est irréversible.",
+        confirmText: "Résilier",
+        variant: "destructive",
+        onConfirm: async () => {
+          const res = await fetch(`/api/contracts/${params.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "terminate" }),
+          });
+          const data = await res.json();
+          if (data.success) setContract(data.data);
+        },
+      });
+      return;
+    }
+
     if (action === "delete") {
-      if (!confirm("Supprimer ce contrat ?")) return;
-      await fetch(`/api/contracts/${params.id}`, { method: "DELETE" });
-      router.push("/contracts");
+      setConfirmState({
+        open: true,
+        title: "Supprimer ce contrat",
+        description: "Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action est irréversible.",
+        confirmText: "Supprimer",
+        variant: "destructive",
+        onConfirm: async () => {
+          await fetch(`/api/contracts/${params.id}`, { method: "DELETE" });
+          router.push("/contracts");
+        },
+      });
       return;
     }
 
@@ -138,10 +195,16 @@ export default function ContractDetailPage() {
           )}
           {(contract.status === "active" ||
             contract.status === "renewal_pending") && (
-            <Button onClick={() => handleAction("renew")}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Renouveler
-            </Button>
+            <>
+              <Button onClick={() => handleAction("generate_invoice")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Générer une facture
+              </Button>
+              <Button variant="outline" onClick={() => handleAction("renew")}>
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Renouveler
+              </Button>
+            </>
           )}
           {contract.status === "active" && (
             <Button
@@ -235,6 +298,19 @@ export default function ContractDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        onClose={() => setConfirmState((s) => ({ ...s, open: false }))}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

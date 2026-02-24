@@ -6,6 +6,7 @@ import {
   deleteContract,
   updateContractStatus,
   renewContract,
+  generateContractInvoice,
 } from "@/lib/services/contract.service";
 import { updateContractSchema } from "@/lib/validators/contract.validator";
 import { success, error } from "@/lib/utils/api-response";
@@ -56,6 +57,11 @@ export async function PUT(
         case "renew":
           return success(
             await renewContract(id, DEFAULT_ORG_ID, user.id)
+          );
+        case "generate_invoice":
+          return success(
+            await generateContractInvoice(id, DEFAULT_ORG_ID, user.id),
+            201
           );
         default:
           return error("Action inconnue", 400);
