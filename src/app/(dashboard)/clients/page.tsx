@@ -5,9 +5,27 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ClientTable } from "@/components/clients/client-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import type { Client, PaginatedResponse } from "@/types";
+import type { Client, PaginatedResponse, ClientPipelineStage } from "@/types";
+import { CLIENT_PIPELINE_LABELS } from "@/types";
+
+const PIPELINE_STAGES: ClientPipelineStage[] = [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+];
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -15,6 +33,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [stageFilter, setStageFilter] = useState<ClientPipelineStage | "all">("all");
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -30,14 +49,17 @@ export default function ClientsPage() {
     onConfirm: () => void;
   }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
-  const fetchClients = useCallback(async (page = 1, searchQuery = "") => {
+  const fetchClients = useCallback(async (page = 1, searchQuery = "", stage: ClientPipelineStage | "all" = "all") => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/clients?${new URLSearchParams({
+      const params: Record<string, string> = {
         page: String(page),
         limit: "20",
-        ...(searchQuery ? { search: searchQuery } : {}),
-      })}`);
+      };
+      if (searchQuery) params.search = searchQuery;
+      if (stage !== "all") params.stage = stage;
+
+      const res = await fetch(`/api/clients?${new URLSearchParams(params)}`);
       const text = await res.text();
       if (!text) { setLoading(false); return; }
       const data: PaginatedResponse<Client> = JSON.parse(text);
@@ -52,8 +74,8 @@ export default function ClientsPage() {
   }, []);
 
   useEffect(() => {
-    fetchClients(1, search);
-  }, [fetchClients, search]);
+    fetchClients(1, search, stageFilter);
+  }, [fetchClients, search, stageFilter]);
 
   function handleDelete(id: string) {
     setConfirmState({
@@ -64,7 +86,7 @@ export default function ClientsPage() {
       variant: "destructive",
       onConfirm: async () => {
         await fetch(`/api/clients/${id}`, { method: "DELETE" });
-        fetchClients(pagination.page, search);
+        fetchClients(pagination.page, search, stageFilter);
       },
     });
   }
@@ -94,6 +116,22 @@ export default function ClientsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select
+          value={stageFilter}
+          onValueChange={(v) => setStageFilter(v as ClientPipelineStage | "all")}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Toutes les étapes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les étapes</SelectItem>
+            {PIPELINE_STAGES.map((stage) => (
+              <SelectItem key={stage} value={stage}>
+                {CLIENT_PIPELINE_LABELS[stage]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
@@ -110,7 +148,7 @@ export default function ClientsPage() {
             variant="outline"
             size="sm"
             disabled={pagination.page <= 1}
-            onClick={() => fetchClients(pagination.page - 1, search)}
+            onClick={() => fetchClients(pagination.page - 1, search, stageFilter)}
           >
             Précédent
           </Button>
@@ -121,7 +159,7 @@ export default function ClientsPage() {
             variant="outline"
             size="sm"
             disabled={pagination.page >= pagination.totalPages}
-            onClick={() => fetchClients(pagination.page + 1, search)}
+            onClick={() => fetchClients(pagination.page + 1, search, stageFilter)}
           >
             Suivant
           </Button>

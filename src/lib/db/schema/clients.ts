@@ -10,6 +10,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
+import { clientPipelineStageEnum } from "./enums";
 
 export const clients = pgTable(
   "clients",
@@ -41,6 +42,7 @@ export const clients = pgTable(
     notes: text("notes"),
 
     isActive: boolean("is_active").default(true),
+    pipelineStage: clientPipelineStageEnum("pipeline_stage").default("prospect"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

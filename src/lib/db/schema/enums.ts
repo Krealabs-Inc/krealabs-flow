@@ -97,3 +97,13 @@ export const auditActionEnum = pgEnum("audit_action", [
   "duplicate",
   "convert",
 ]);
+
+export const clientPipelineStageEnum = pgEnum("client_pipeline_stage", [
+  "prospect",
+  "contact_made",
+  "proposal_sent",
+  "negotiation",
+  "active",
+  "inactive",
+  "lost",
+]);
