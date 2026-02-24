@@ -176,6 +176,24 @@ services:
     restart: unless-stopped
 
   # =============================================
+  # Mailpit — SMTP local de dev
+  # Console emails : http://localhost:8025
+  # SMTP interne    : mailpit:1025
+  #
+  # Après démarrage, configurer le SMTP Stack Auth :
+  #   http://localhost:8101 → Project Settings → Emails → Custom SMTP
+  #   Host: mailpit  Port: 1025  (sans auth, sans TLS)
+  # =============================================
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"   # Web UI
+      - "${MAILPIT_SMTP_PORT:-1025}:1025" # SMTP
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================
   # Redis (cache, sessions, rate-limiting)
   # =============================================
   redis:
