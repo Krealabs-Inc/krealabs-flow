@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -18,9 +19,12 @@ import {
   AlertTriangle,
   CreditCard,
   BarChart3,
+  Activity,
+  FileTextIcon,
 } from "lucide-react";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import type { DashboardStats } from "@/lib/services/dashboard.service";
+import type { ActivityItem } from "@/app/api/activity/route";
 
 const fmt = (val: number) =>
   val.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
@@ -29,6 +33,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -44,6 +49,12 @@ export default function DashboardPage() {
       setLoading(false);
     }
     load();
+
+    // Load activity feed independently
+    fetch("/api/activity")
+      .then((r) => r.json())
+      .then((j) => { if (j.success) setActivityItems(j.data); })
+      .catch(() => {});
   }, []);
 
   if (loading) {
@@ -339,6 +350,72 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity feed */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Activité récente
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activityItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Aucune activité récente
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {activityItems.map((item) => {
+                const relativeDate = (() => {
+                  const diff = Date.now() - new Date(item.date).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(mins / 60);
+                  const days = Math.floor(hours / 24);
+                  if (days > 0) return `il y a ${days}j`;
+                  if (hours > 0) return `il y a ${hours}h`;
+                  if (mins > 0) return `il y a ${mins}min`;
+                  return "à l'instant";
+                })();
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        {item.type === "invoice" && <Receipt className="h-4 w-4 text-primary" />}
+                        {item.type === "payment" && <CreditCard className="h-4 w-4 text-green-600" />}
+                        {item.type === "quote" && <FileTextIcon className="h-4 w-4 text-violet-600" />}
+                        {item.type === "client" && <Users className="h-4 w-4 text-blue-600" />}
+                        {item.type === "contract" && <ScrollText className="h-4 w-4 text-amber-600" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium leading-tight">
+                          {item.action}{" "}
+                          <span className="font-mono">{item.label}</span>
+                        </p>
+                        {item.amount && (
+                          <p className="text-xs text-muted-foreground">
+                            {parseFloat(item.amount).toLocaleString("fr-FR", {
+                              style: "currency",
+                              currency: "EUR",
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-4">
+                      {relativeDate}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
