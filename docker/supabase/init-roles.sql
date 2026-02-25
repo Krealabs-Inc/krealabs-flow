@@ -7,6 +7,12 @@
 -- 1. Create roles (skip if they already exist)
 DO $$
 BEGIN
+  -- postgres: GoTrue migrations hardcode "GRANT ... TO postgres".
+  -- Notre instance n'a pas ce rôle (superuser = krealabs), on le crée en alias.
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
+    CREATE ROLE postgres NOLOGIN;
+    RAISE NOTICE 'Created role: postgres (alias for GoTrue compat)';
+  END IF;
   -- anon: used for anonymous PostgREST requests
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
     CREATE ROLE anon NOLOGIN NOINHERIT;

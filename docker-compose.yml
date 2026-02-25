@@ -227,12 +227,13 @@ services:
       supabase-kong:
         condition: service_started
     healthcheck:
+      # /api/profile n'existe pas dans Studio v2026 — on check le root (307 redirect = OK)
       test:
         [
           "CMD",
           "node",
           "-e",
-          "require('http').get('http://localhost:3000/api/profile', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+          "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode < 500) process.exit(0); else process.exit(1); }).on('error', () => process.exit(1))"
         ]
       timeout: 10s
       interval: 10s
@@ -259,6 +260,13 @@ services:
       # Désactiver les logs analytics (pas de service logflare dans notre stack)
       NEXT_PUBLIC_ENABLE_LOGS: "false"
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+      # Requis par Studio v2026+ pour la gestion des Edge Functions (dossier local)
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+      # Next.js 16 ne bind plus sur 127.0.0.1 par défaut dans Docker ;
+      # forcer 0.0.0.0 pour que le healthcheck (localhost:3000) fonctionne.
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - studio_edge_functions:/app/edge-functions
     ports:
       - "${STUDIO_PORT:-3001}:3000"
     networks:
@@ -398,6 +406,7 @@ volumes:
   redis_data:
   clickhouse_data:
   minio_data:
+  studio_edge_functions:
 
 networks:
   internal:
