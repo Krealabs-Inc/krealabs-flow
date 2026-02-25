@@ -63,13 +63,17 @@ setConfirmState({ open: true, title: "...", description: "...", variant: "destru
 ## Stack Docker
 
 ```
-postgres:5432      — Base de données principale
-stack-auth:8102    — Stack Auth API (self-hosted)
-stack-auth:8101    — Stack Auth Dashboard
-clickhouse:8123    — Requis par Stack Auth
-redis:6379         — Cache Stack Auth
-supabase-studio    — Interface DB http://localhost:3001
-app:3000           — Next.js
+postgres:5432           — Base de données principale
+stack-auth:8102         — Stack Auth API (self-hosted)
+stack-auth:8101         — Stack Auth Dashboard
+clickhouse:8123         — Requis par Stack Auth
+redis:6379              — Cache Stack Auth
+supabase-studio:3001    — Interface DB Supabase Studio
+supabase-kong:8000      — API Gateway (Studio → meta/rest/auth)
+supabase-meta:5555      — postgres-meta (accès direct dev)
+mailpit:8025            — Web UI emails de dev
+minio:9001              — Console MinIO (stockage Stack Auth)
+app:3000                — Next.js
 ```
 
 Commande pour rebuild + relancer :
