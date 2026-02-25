@@ -78,6 +78,7 @@ interface OrgData {
   bic?: string;
   legalMentions?: string;
   quoteTerms?: string;
+  defaultDailyRate?: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -545,6 +546,32 @@ export default function SettingsPage() {
 
         {/* --- Facturation --- */}
         <TabsContent value="billing" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tarification</CardTitle>
+              <CardDescription>
+                TJM pré-rempli sur chaque nouvelle ligne de devis / facture.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-w-xs space-y-2">
+                <Label htmlFor="defaultDailyRate">TJM par défaut (€/jour)</Label>
+                <Input
+                  id="defaultDailyRate"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={data.defaultDailyRate || ""}
+                  onChange={(e) => update("defaultDailyRate", e.target.value)}
+                  placeholder="Ex : 650"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Appliqué automatiquement sur les nouvelles lignes de type &quot;Jour&quot;.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Préférences de facturation</CardTitle>

@@ -16,6 +16,7 @@ interface OrgOption {
   name: string;
   legalForm?: string;
   tvaRegime?: string;
+  defaultDailyRate?: string | null;
   siren?: string;
   city?: string;
   isPrimary: boolean;

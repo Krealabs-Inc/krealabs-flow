@@ -42,6 +42,7 @@ export async function updateOrganization(
     legalForm: string;
     tvaRegime: string;
     capitalSocial: string;
+    defaultDailyRate: string;
   }>
 ) {
   // Remove fields that shouldn't be updated (id, timestamps)

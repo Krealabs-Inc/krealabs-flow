@@ -27,37 +27,16 @@ const UNITS = [
 interface QuoteLineEditorProps {
   lines: QuoteLineFormData[];
   onChange: (lines: QuoteLineFormData[]) => void;
+  franchiseTva?: boolean;
+  defaultTjm?: number;
 }
 
-function emptyLine(sortOrder: number): QuoteLineFormData {
-  return {
-    sortOrder,
-    isSection: false,
-    isOptional: false,
-    description: "",
-    details: "",
-    quantity: 1,
-    unit: "day",
-    unitPriceHt: 0,
-    tvaRate: 20,
-  };
-}
-
-function emptySection(sortOrder: number): QuoteLineFormData {
-  return {
-    sortOrder,
-    isSection: true,
-    isOptional: false,
-    description: "",
-    details: "",
-    quantity: 0,
-    unit: "unit",
-    unitPriceHt: 0,
-    tvaRate: 0,
-  };
-}
-
-export function QuoteLineEditor({ lines, onChange }: QuoteLineEditorProps) {
+export function QuoteLineEditor({
+  lines,
+  onChange,
+  franchiseTva = false,
+  defaultTjm = 0,
+}: QuoteLineEditorProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   function updateLine(
@@ -71,11 +50,31 @@ export function QuoteLineEditor({ lines, onChange }: QuoteLineEditorProps) {
   }
 
   function addLine() {
-    onChange([...lines, emptyLine(lines.length)]);
+    onChange([...lines, {
+      sortOrder: lines.length,
+      isSection: false,
+      isOptional: false,
+      description: "",
+      details: "",
+      quantity: 1,
+      unit: "day",
+      unitPriceHt: defaultTjm,
+      tvaRate: franchiseTva ? 0 : 20,
+    }]);
   }
 
   function addSection() {
-    onChange([...lines, emptySection(lines.length)]);
+    onChange([...lines, {
+      sortOrder: lines.length,
+      isSection: true,
+      isOptional: false,
+      description: "",
+      details: "",
+      quantity: 0,
+      unit: "unit",
+      unitPriceHt: 0,
+      tvaRate: 0,
+    }]);
   }
 
   function removeLine(index: number) {

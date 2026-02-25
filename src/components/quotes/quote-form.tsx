@@ -32,6 +32,9 @@ interface QuoteFormProps {
 interface OrgOption {
   id: string;
   name: string;
+  tvaRegime?: string | null;
+  defaultDailyRate?: string | null;
+  isPrimary?: boolean;
 }
 
 export function QuoteForm({ quote }: QuoteFormProps) {
@@ -45,6 +48,19 @@ export function QuoteForm({ quote }: QuoteFormProps) {
   const [issuingOrgId, setIssuingOrgId] = useState<string>(
     (quote as any)?.issuingOrgId || currentOrgId || ""
   );
+
+  // Derived from issuing org
+  const issuingOrg = orgs.find((o) => o.id === issuingOrgId);
+  const franchiseTva = issuingOrg?.tvaRegime === "franchise_base";
+  const defaultTjm = parseFloat(issuingOrg?.defaultDailyRate ?? "0") || 0;
+
+  function handleIssuingOrgChange(orgId: string) {
+    setIssuingOrgId(orgId);
+    const org = orgs.find((o) => o.id === orgId);
+    if (org?.tvaRegime === "franchise_base") {
+      setLines((prev) => prev.map((l) => ({ ...l, tvaRate: 0 })));
+    }
+  }
   const [discountPercent, setDiscountPercent] = useState(
     parseFloat(quote?.discountPercent ?? "0")
   );
@@ -94,10 +110,14 @@ export function QuoteForm({ quote }: QuoteFormProps) {
       const orgsJson = await orgsRes.json();
       if (clientsJson.success) setClients(clientsJson.data);
       if (orgsJson.success) {
-        setOrgs(orgsJson.data.map((o: OrgOption) => ({ id: o.id, name: o.name })));
-        if (!quote && !issuingOrgId && orgsJson.data.length > 0) {
-          const primary = orgsJson.data.find((o: any) => o.isPrimary) ?? orgsJson.data[0];
-          setIssuingOrgId(primary.id);
+        setOrgs(orgsJson.data);
+        if (!quote && orgsJson.data.length > 0) {
+          const targetId = issuingOrgId || (orgsJson.data.find((o: any) => o.isPrimary) ?? orgsJson.data[0]).id;
+          setIssuingOrgId(targetId);
+          const targetOrg = orgsJson.data.find((o: any) => o.id === targetId);
+          if (targetOrg?.tvaRegime === "franchise_base") {
+            setLines((prev) => prev.map((l) => ({ ...l, tvaRate: 0 })));
+          }
         }
       }
     }
@@ -185,7 +205,7 @@ export function QuoteForm({ quote }: QuoteFormProps) {
           {orgs.length > 1 && (
             <div className="space-y-2 md:col-span-2">
               <Label>Émettre depuis</Label>
-              <Select value={issuingOrgId} onValueChange={setIssuingOrgId}>
+              <Select value={issuingOrgId} onValueChange={handleIssuingOrgChange}>
                 <SelectTrigger className="max-w-xs">
                   <SelectValue placeholder="Sélectionner l'entreprise émettrice" />
                 </SelectTrigger>
@@ -270,7 +290,12 @@ export function QuoteForm({ quote }: QuoteFormProps) {
           <CardTitle>Prestations</CardTitle>
         </CardHeader>
         <CardContent>
-          <QuoteLineEditor lines={lines} onChange={setLines} />
+          <QuoteLineEditor
+            lines={lines}
+            onChange={setLines}
+            franchiseTva={franchiseTva}
+            defaultTjm={defaultTjm}
+          />
         </CardContent>
       </Card>
 
@@ -326,13 +351,23 @@ export function QuoteForm({ quote }: QuoteFormProps) {
               <span className="text-muted-foreground">Total HT</span>
               <span className="w-32 font-medium">{fmt(totalHt)}</span>
             </div>
-            <div className="flex justify-end gap-8 text-sm">
-              <span className="text-muted-foreground">TVA</span>
-              <span className="w-32">{fmt(totalTva)}</span>
-            </div>
+            {franchiseTva ? (
+              <div className="flex justify-end gap-8 text-sm">
+                <span className="text-muted-foreground text-right">
+                  TVA non applicable<br />
+                  <span className="text-xs">Art. 293 B du CGI</span>
+                </span>
+                <span className="w-32 text-muted-foreground">—</span>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-8 text-sm">
+                <span className="text-muted-foreground">TVA</span>
+                <span className="w-32">{fmt(totalTva)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-end gap-8 text-lg font-bold">
-              <span>Total TTC</span>
+              <span>Total {franchiseTva ? "HT" : "TTC"}</span>
               <span className="w-32">{fmt(totalTtc)}</span>
             </div>
             {depositPercent > 0 && (
