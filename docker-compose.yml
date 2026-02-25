@@ -148,7 +148,9 @@ services:
       GOTRUE_API_PORT: 9999
       API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:supabase-auth-admin-dev@supabase-db:5432/${POSTGRES_DB:-krealabs_flow}
+      # Utilise le user principal (superuser) pour que GoTrue puisse créer
+      # ses tables de migration dans public + le schéma auth sans erreurs de permissions.
+      GOTRUE_DB_DATABASE_URL: postgresql://${POSTGRES_USER:-krealabs}:${POSTGRES_PASSWORD:-krealabs}@supabase-db:5432/${POSTGRES_DB:-krealabs_flow}
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3001}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
       GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
@@ -187,8 +189,10 @@ services:
   # =============================================
   supabase-kong:
     image: kong:2.8.1
-    # L'entrypoint substitue les variables dans kong.yml (ANON_KEY, SERVICE_ROLE_KEY)
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    # Pas d'entrypoint custom — on monte kong.yml directement à l'emplacement attendu.
+    # Le trick eval/echo de Supabase strip les guillemets YAML ("1.1" → 1.1)
+    # ce qui casse le parsing. Le kong.yml est simplifié (pas de key-auth) donc
+    # aucune substitution de variables n'est nécessaire.
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
@@ -196,10 +200,8 @@ services:
       KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
       KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
       KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7kyqAMb1MQi4wYKFWAV3YX5HFy7tEFdM_Gs}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
     volumes:
-      - ./docker/supabase/kong.yml:/home/kong/temp.yml:ro
+      - ./docker/supabase/kong.yml:/home/kong/kong.yml:ro
     ports:
       - "${KONG_HTTP_PORT:-8000}:8000"
       - "${KONG_HTTPS_PORT:-8443}:8443"

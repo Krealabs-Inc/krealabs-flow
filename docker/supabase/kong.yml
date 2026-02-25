@@ -1,46 +1,15 @@
 _format_version: "1.1"
 
 ###############################################################################
-# Consumers (API key holders)
-# The entrypoint substitutes ${SUPABASE_ANON_KEY} / ${SUPABASE_SERVICE_ROLE_KEY}
-# from environment variables at container startup.
-###############################################################################
-consumers:
-  - username: anon
-    keyauth_credentials:
-      - key: ${SUPABASE_ANON_KEY}
-  - username: service_role
-    keyauth_credentials:
-      - key: ${SUPABASE_SERVICE_ROLE_KEY}
-
-acls:
-  - consumer: anon
-    group: anon
-  - consumer: service_role
-    group: service_role
-
-###############################################################################
-# Services & routes
+# Dev setup — no key-auth required (local network only).
+# Studio authenticates to PostgREST via JWT in Authorization header;
+# PostgREST validates the token against PGRST_JWT_SECRET directly.
 ###############################################################################
 services:
 
   # --------------------------------------------------------------------------
-  # GoTrue (auth) — open endpoints, no API key required
-  # Handles: /auth/v1/callback, /auth/v1/verify, /auth/v1/authorize
+  # GoTrue — /auth/v1/
   # --------------------------------------------------------------------------
-  - name: auth-v1-open
-    url: http://supabase-auth:9999/
-    routes:
-      - name: auth-v1-open
-        strip_path: true
-        paths:
-          - /auth/v1/callback
-          - /auth/v1/verify
-          - /auth/v1/authorize
-    plugins:
-      - name: cors
-
-  # GoTrue — all other /auth/v1/ endpoints (require API key)
   - name: auth-v1
     url: http://supabase-auth:9999/
     routes:
@@ -50,19 +19,10 @@ services:
           - /auth/v1/
     plugins:
       - name: cors
-      - name: key-auth
-        config:
-          hide_credentials: false
-      - name: acl
-        config:
-          hide_groups_header: true
-          allow:
-            - anon
-            - service_role
 
   # --------------------------------------------------------------------------
-  # PostgREST — REST API for table data
-  # /rest/v1/ → postgrest:3000
+  # PostgREST — /rest/v1/
+  # Studio sends Authorization: Bearer <jwt>, PostgREST validates it itself.
   # --------------------------------------------------------------------------
   - name: rest-v1
     url: http://supabase-rest:3000/
@@ -73,19 +33,10 @@ services:
           - /rest/v1/
     plugins:
       - name: cors
-      - name: key-auth
-        config:
-          hide_credentials: false
-      - name: acl
-        config:
-          hide_groups_header: true
-          allow:
-            - anon
-            - service_role
 
   # --------------------------------------------------------------------------
-  # postgres-meta — schema & SQL API used by Studio
-  # /pg/ → postgres-meta:8080
+  # postgres-meta — /pg/
+  # Used by Studio for schema browser, SQL editor, table management.
   # --------------------------------------------------------------------------
   - name: meta
     url: http://supabase-meta:8080/
