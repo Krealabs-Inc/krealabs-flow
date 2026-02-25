@@ -225,6 +225,7 @@ services:
   # =============================================
   supabase-studio:
     image: supabase/studio:2026.02.16-sha-26c615c
+    entrypoint: ["/bin/sh", "/studio-entrypoint.sh"]
     depends_on:
       supabase-kong:
         condition: service_started
@@ -270,7 +271,13 @@ services:
       # Next.js 16 ne bind plus sur 127.0.0.1 par défaut dans Docker ;
       # forcer 0.0.0.0 pour que le healthcheck (localhost:3000) fonctionne.
       HOSTNAME: 0.0.0.0
+      # Vars pour le studio-entrypoint.sh : génération du connectionString chiffré
+      # Permet au browser de passer x-connection-encrypted aux requêtes /platform/pg-meta/
+      POSTGRES_HOST: supabase-db
+      POSTGRES_DATABASE: ${POSTGRES_DB:-krealabs_flow}
+      POSTGRES_USER_READ_WRITE: supabase_admin
     volumes:
+      - ./docker/supabase/studio-entrypoint.sh:/studio-entrypoint.sh:ro
       - studio_edge_functions:/app/edge-functions
       - studio_snippets:/app/snippets
     ports:
