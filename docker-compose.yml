@@ -274,7 +274,7 @@ services:
       # Vars pour le studio-entrypoint.sh : génération du connectionString chiffré
       # Permet au browser de passer x-connection-encrypted aux requêtes /platform/pg-meta/
       POSTGRES_HOST: supabase-db
-      POSTGRES_DATABASE: ${POSTGRES_DB:-krealabs_flow}
+      POSTGRES_DB: ${POSTGRES_DB:-krealabs_flow}
       POSTGRES_USER_READ_WRITE: supabase_admin
     volumes:
       - ./docker/supabase/studio-entrypoint.sh:/studio-entrypoint.sh:ro

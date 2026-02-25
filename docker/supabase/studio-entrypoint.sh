@@ -37,7 +37,7 @@ try {
     ":" +
     (process.env.POSTGRES_PORT || "5432") +
     "/" +
-    (process.env.POSTGRES_DATABASE || "postgres");
+    (process.env.POSTGRES_DB || "postgres");
   connStr = CryptoJS.AES.encrypt(
     pgConn,
     process.env.PG_META_CRYPTO_KEY || "SAMPLE_KEY"
@@ -53,22 +53,33 @@ try {
 const safeConnStr = connStr.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
 // Patch all compiled chunk files that contain connectionString:""
-const chunkDir = "/app/apps/studio/.next/server/chunks";
+// Must patch BOTH server chunks (SSR) and static chunks (browser bundles)
+const chunkDirs = [
+  "/app/apps/studio/.next/server/chunks",
+  "/app/apps/studio/.next/static/chunks",
+];
 let patched = 0;
-const entries = fs.readdirSync(chunkDir, { withFileTypes: true });
-for (const entry of entries) {
-  if (!entry.isFile() || !entry.name.endsWith(".js")) continue;
-  const fullPath = path.join(chunkDir, entry.name);
-  const before = fs.readFileSync(fullPath, "utf8");
-  // Replace all occurrences of the empty connectionString
-  const after = before.replaceAll(
-    'connectionString:""',
-    `connectionString:"${safeConnStr}"`
-  );
-  if (after !== before) {
-    fs.writeFileSync(fullPath, after);
-    patched++;
-    console.log("[studio-patch] Patched:", entry.name);
+for (const chunkDir of chunkDirs) {
+  let entries;
+  try {
+    entries = fs.readdirSync(chunkDir, { withFileTypes: true });
+  } catch (e) {
+    console.warn("[studio-patch] Directory not found, skipping:", chunkDir);
+    continue;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".js")) continue;
+    const fullPath = path.join(chunkDir, entry.name);
+    const before = fs.readFileSync(fullPath, "utf8");
+    const after = before.replaceAll(
+      'connectionString:""',
+      `connectionString:"${safeConnStr}"`
+    );
+    if (after !== before) {
+      fs.writeFileSync(fullPath, after);
+      patched++;
+      console.log("[studio-patch] Patched:", entry.name);
+    }
   }
 }
 console.log(`[studio-patch] Done — ${patched} file(s) patched.`);
