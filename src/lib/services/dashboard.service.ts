@@ -133,7 +133,7 @@ export async function getDashboardStats(
         total: sql<number>`count(*)`,
         pending: sql<number>`SUM(CASE WHEN ${quotes.status} IN ('sent','viewed') THEN 1 ELSE 0 END)`,
         acceptedThisMonth: sql<number>`SUM(CASE WHEN ${quotes.status} = 'accepted' AND ${quotes.acceptedDate} >= ${thisMonthStart} THEN 1 ELSE 0 END)`,
-        accepted: sql<number>`SUM(CASE WHEN ${quotes.status} IN ('accepted','converted') THEN 1 ELSE 0 END)`,
+        accepted: sql<number>`SUM(CASE WHEN ${quotes.status} IN ('accepted','partially_invoiced','fully_invoiced') THEN 1 ELSE 0 END)`,
       })
       .from(quotes)
       .where(eq(quotes.organizationId, organizationId)),
