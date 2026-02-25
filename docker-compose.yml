@@ -93,7 +93,7 @@ services:
   # Accès direct (dev) : http://localhost:5555
   # =============================================
   supabase-meta:
-    image: supabase/postgres-meta:v0.84.2
+    image: supabase/postgres-meta:v0.95.2
     depends_on:
       supabase-db-init:
         condition: service_completed_successfully
@@ -117,7 +117,7 @@ services:
   # dans les tables directement depuis l'UI.
   # =============================================
   supabase-rest:
-    image: postgrest/postgrest:v12.2.0
+    image: postgrest/postgrest:v14.5
     depends_on:
       supabase-db-init:
         condition: service_completed_successfully
@@ -139,7 +139,7 @@ services:
   # et l'onglet "Authentication".
   # =============================================
   supabase-auth:
-    image: supabase/gotrue:v2.164.1
+    image: supabase/gotrue:v2.187.0
     depends_on:
       supabase-db-init:
         condition: service_completed_successfully
@@ -220,7 +220,7 @@ services:
   # Accessible sur http://localhost:3001
   # =============================================
   supabase-studio:
-    image: supabase/studio:20250113-83c9420
+    image: supabase/studio:2026.02.16-sha-26c615c
     depends_on:
       supabase-kong:
         condition: service_started
