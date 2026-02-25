@@ -250,9 +250,11 @@ services:
       SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8000}
 
-      # JWT keys (doivent correspondre à ceux de Kong/GoTrue/PostgREST)
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7kyqAMb1MQi4wYKFWAV3YX5HFy7tEFdM_Gs}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
+      # JWT keys signés avec SUPABASE_JWT_SECRET (super-secret-jwt-token-with-at-least-32-characters-long)
+      # Les JWTs démo Supabase sont signés avec un secret DIFFÉRENT → PostgREST v14 les rejette (401).
+      # Ces valeurs sont générées avec le bon secret, exp=2099-01-01.
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjQwNzA5MDg4MDB9.ZmL64lXUBx7Vu36qDRduwQVuxhpfxKToseD3ulpuB0s}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6NDA3MDkwODgwMH0.46P5RCEqG2Ze3jlhO_rg2sW1F6VdSERIMXIpOMinKrs}
       AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
 
       # Projet par défaut
@@ -262,13 +264,15 @@ services:
       # Désactiver les logs analytics (pas de service logflare dans notre stack)
       NEXT_PUBLIC_ENABLE_LOGS: "false"
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
-      # Requis par Studio v2026+ pour la gestion des Edge Functions (dossier local)
+      # Requis par Studio v2026+ pour la gestion des Edge Functions et Snippets
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
       # Next.js 16 ne bind plus sur 127.0.0.1 par défaut dans Docker ;
       # forcer 0.0.0.0 pour que le healthcheck (localhost:3000) fonctionne.
       HOSTNAME: 0.0.0.0
     volumes:
       - studio_edge_functions:/app/edge-functions
+      - studio_snippets:/app/snippets
     ports:
       - "${STUDIO_PORT:-3001}:3000"
     networks:
@@ -409,6 +413,7 @@ volumes:
   clickhouse_data:
   minio_data:
   studio_edge_functions:
+  studio_snippets:
 
 networks:
   internal:
