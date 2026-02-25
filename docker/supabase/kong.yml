@@ -1,0 +1,98 @@
+_format_version: "1.1"
+
+###############################################################################
+# Consumers (API key holders)
+# The entrypoint substitutes ${SUPABASE_ANON_KEY} / ${SUPABASE_SERVICE_ROLE_KEY}
+# from environment variables at container startup.
+###############################################################################
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: ${SUPABASE_ANON_KEY}
+  - username: service_role
+    keyauth_credentials:
+      - key: ${SUPABASE_SERVICE_ROLE_KEY}
+
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: service_role
+
+###############################################################################
+# Services & routes
+###############################################################################
+services:
+
+  # --------------------------------------------------------------------------
+  # GoTrue (auth) — open endpoints, no API key required
+  # Handles: /auth/v1/callback, /auth/v1/verify, /auth/v1/authorize
+  # --------------------------------------------------------------------------
+  - name: auth-v1-open
+    url: http://supabase-auth:9999/
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+          - /auth/v1/verify
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+
+  # GoTrue — all other /auth/v1/ endpoints (require API key)
+  - name: auth-v1
+    url: http://supabase-auth:9999/
+    routes:
+      - name: auth-v1
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - service_role
+
+  # --------------------------------------------------------------------------
+  # PostgREST — REST API for table data
+  # /rest/v1/ → postgrest:3000
+  # --------------------------------------------------------------------------
+  - name: rest-v1
+    url: http://supabase-rest:3000/
+    routes:
+      - name: rest-v1
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - service_role
+
+  # --------------------------------------------------------------------------
+  # postgres-meta — schema & SQL API used by Studio
+  # /pg/ → postgres-meta:8080
+  # --------------------------------------------------------------------------
+  - name: meta
+    url: http://supabase-meta:8080/
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /pg/
+    plugins:
+      - name: cors

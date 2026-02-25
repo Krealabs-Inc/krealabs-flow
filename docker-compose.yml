@@ -63,18 +63,202 @@ services:
     restart: unless-stopped
 
   # =============================================
-  # Adminer (UI pour voir/modifier la DB)
-  # Accessible sur http://localhost:8082
+  # Supabase DB Init — crée les rôles PostgreSQL
+  # nécessaires pour PostgREST, GoTrue et Studio.
+  # S'exécute à chaque démarrage (idempotent).
   # =============================================
-  adminer:
-    image: adminer:latest
-    ports:
-      - "${STUDIO_PORT:-8082}:8080"
-    environment:
-      ADMINER_DEFAULT_SERVER: supabase-db
+  supabase-db-init:
+    image: postgres:17-alpine
     depends_on:
       supabase-db:
         condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-krealabs}
+    volumes:
+      - ./docker/supabase/init-roles.sql:/init-roles.sql:ro
+    command: >
+      psql
+        -h supabase-db
+        -U ${POSTGRES_USER:-krealabs}
+        -d ${POSTGRES_DB:-krealabs_flow}
+        -f /init-roles.sql
+    networks:
+      - internal
+    restart: on-failure
+
+  # =============================================
+  # postgres-meta — API de métadonnées PostgreSQL
+  # Utilisé par Studio pour explorer le schéma,
+  # lancer des requêtes SQL, gérer les tables.
+  # Accès direct (dev) : http://localhost:5555
+  # =============================================
+  supabase-meta:
+    image: supabase/postgres-meta:v0.84.2
+    depends_on:
+      supabase-db-init:
+        condition: service_completed_successfully
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: supabase-db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: ${POSTGRES_DB:-krealabs_flow}
+      PG_META_DB_USER: ${POSTGRES_USER:-krealabs}
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-krealabs}
+      PG_META_DB_SSL_MODE: disable
+    ports:
+      - "${META_PORT:-5555}:8080"
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================
+  # PostgREST — API REST auto-générée
+  # Utilisée par Studio pour lire/écrire les données
+  # dans les tables directement depuis l'UI.
+  # =============================================
+  supabase-rest:
+    image: postgrest/postgrest:v12.2.0
+    depends_on:
+      supabase-db-init:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgresql://authenticator:supabase-authenticator-dev@supabase-db:5432/${POSTGRES_DB:-krealabs_flow}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================
+  # GoTrue — service d'authentification Supabase
+  # Requis par Studio pour la gestion des sessions
+  # et l'onglet "Authentication".
+  # =============================================
+  supabase-auth:
+    image: supabase/gotrue:v2.164.1
+    depends_on:
+      supabase-db-init:
+        condition: service_completed_successfully
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:supabase-auth-admin-dev@supabase-db:5432/${POSTGRES_DB:-krealabs_flow}
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3001}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: ${MAILER_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-admin@krealabs.local}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-mailpit}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-1025}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-KreaLabs Flow}
+      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE:-/auth/v1/verify}
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_SMS_AUTOCONFIRM: "false"
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================
+  # Kong — API Gateway Supabase
+  # Route les requêtes de Studio vers :
+  #   /auth/v1/  → GoTrue
+  #   /rest/v1/  → PostgREST
+  #   /pg/       → postgres-meta
+  # API interne : http://supabase-kong:8000
+  # Port hôte   : http://localhost:8000
+  # =============================================
+  supabase-kong:
+    image: kong:2.8.1
+    # L'entrypoint substitue les variables dans kong.yml (ANON_KEY, SERVICE_ROLE_KEY)
+    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7kyqAMb1MQi4wYKFWAV3YX5HFy7tEFdM_Gs}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
+    volumes:
+      - ./docker/supabase/kong.yml:/home/kong/temp.yml:ro
+    ports:
+      - "${KONG_HTTP_PORT:-8000}:8000"
+      - "${KONG_HTTPS_PORT:-8443}:8443"
+    depends_on:
+      supabase-meta:
+        condition: service_started
+      supabase-rest:
+        condition: service_started
+      supabase-auth:
+        condition: service_started
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================
+  # Supabase Studio — Interface graphique DB
+  # Table editor, SQL editor, explorateur schéma.
+  # Accessible sur http://localhost:3001
+  # =============================================
+  supabase-studio:
+    image: supabase/studio:20250113-83c9420
+    depends_on:
+      supabase-kong:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/api/profile', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+        ]
+      timeout: 10s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      # postgres-meta via Kong
+      STUDIO_PG_META_URL: http://supabase-kong:8000/pg
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-krealabs}
+
+      # Kong gateway (interne + externe)
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8000}
+
+      # JWT keys (doivent correspondre à ceux de Kong/GoTrue/PostgREST)
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7kyqAMb1MQi4wYKFWAV3YX5HFy7tEFdM_Gs}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
+      AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+
+      # Projet par défaut
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-KreaLabs}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT:-krealabs-flow}
+
+      # Désactiver les logs analytics (pas de service logflare dans notre stack)
+      NEXT_PUBLIC_ENABLE_LOGS: "false"
+      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    ports:
+      - "${STUDIO_PORT:-3001}:3000"
     networks:
       - internal
     restart: unless-stopped
