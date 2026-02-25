@@ -128,14 +128,6 @@ export function ClientForm({ client }: ClientFormProps) {
               maxLength={14}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="tvaNumber">N° TVA</Label>
-            <Input
-              id="tvaNumber"
-              name="tvaNumber"
-              defaultValue={client?.tvaNumber ?? ""}
-            />
-          </div>
           <div className="col-span-2 space-y-2">
             <Label htmlFor="pipelineStage">Étape pipeline</Label>
             <Select
@@ -259,17 +251,6 @@ export function ClientForm({ client }: ClientFormProps) {
               type="number"
               defaultValue={client?.paymentTerms ?? ""}
               placeholder="Par défaut : 30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tvaRate">Taux de TVA (%)</Label>
-            <Input
-              id="tvaRate"
-              name="tvaRate"
-              type="number"
-              step="0.01"
-              defaultValue={client?.tvaRate ?? ""}
-              placeholder="Par défaut : 20"
             />
           </div>
           <div className="col-span-2 space-y-2">

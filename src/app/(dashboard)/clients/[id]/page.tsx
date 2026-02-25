@@ -304,13 +304,7 @@ export default function ClientDetailPage() {
                     <p className="font-mono text-sm">{client.siret}</p>
                   </div>
                 )}
-                {client.tvaNumber && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">N° TVA</span>
-                    <p className="font-mono text-sm">{client.tvaNumber}</p>
-                  </div>
-                )}
-                {!client.siret && !client.tvaNumber && (
+                {!client.siret && (
                   <p className="text-sm text-muted-foreground">
                     Aucune information renseignée
                   </p>
@@ -386,10 +380,6 @@ export default function ClientDetailPage() {
                     Délai de paiement
                   </span>
                   <p>{client.paymentTerms ?? "Par défaut (30)"} jours</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Taux TVA</span>
-                  <p>{client.tvaRate ?? "Par défaut (20)"}%</p>
                 </div>
               </CardContent>
             </Card>
