@@ -42,6 +42,8 @@ services:
   # =============================================
   supabase-db:
     image: postgres:17-alpine
+    # pg_stat_statements requis par Studio (Query Performance tab)
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-krealabs}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-krealabs}
@@ -76,12 +78,12 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:-krealabs}
     volumes:
       - ./docker/supabase/init-roles.sql:/init-roles.sql:ro
-    command: >
-      psql
-        -h supabase-db
-        -U ${POSTGRES_USER:-krealabs}
-        -d ${POSTGRES_DB:-krealabs_flow}
-        -f /init-roles.sql
+    # Forme liste pour éviter le découpage YAML du sh -c "..."
+    # ${POSTGRES_PASSWORD:-krealabs} est substitué par Docker Compose (depuis .env.local)
+    command:
+      - sh
+      - -c
+      - "psql -h supabase-db -U ${POSTGRES_USER:-krealabs} -d ${POSTGRES_DB:-krealabs_flow} -v supabase_admin_password=${POSTGRES_PASSWORD:-krealabs} -f /init-roles.sql"
     networks:
       - internal
     restart: on-failure

@@ -43,8 +43,21 @@ BEGIN
     CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'supabase-auth-admin-dev';
     RAISE NOTICE 'Created role: supabase_auth_admin';
   END IF;
+
 END
 $$;
+
+-- 5. supabase_admin — postgres-meta v0.84+ uses this role for Studio requests.
+--    Password MUST match POSTGRES_PASSWORD (injected via psql -v at startup).
+--    :'supabase_admin_password' substitution requires being OUTSIDE a DO $$ block.
+\set ON_ERROR_STOP off
+CREATE ROLE supabase_admin LOGIN SUPERUSER PASSWORD :'supabase_admin_password';
+\set ON_ERROR_STOP on
+-- Always sync the password so it stays in sync with POSTGRES_PASSWORD (idempotent)
+ALTER ROLE supabase_admin PASSWORD :'supabase_admin_password';
+
+-- 5. pg_stat_statements extension (needed for Studio Query Performance tab)
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 -- 2. Grant sub-roles to authenticator (PostgREST role switching)
 GRANT anon        TO authenticator;
