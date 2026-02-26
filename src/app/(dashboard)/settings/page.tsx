@@ -217,9 +217,9 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Paramètres</h1>
           <p className="text-muted-foreground">
             Configurez votre entreprise, vos coordonnées bancaires et vos préférences de facturation.
           </p>
@@ -272,6 +272,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-4">
+        <div className="overflow-x-auto">
         <TabsList>
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
@@ -290,6 +291,7 @@ export default function SettingsPage() {
             Apparence
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* --- Entreprise --- */}
         <TabsContent value="company" className="space-y-4">
