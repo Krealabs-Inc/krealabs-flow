@@ -268,7 +268,7 @@ export default function DeclarationsPage() {
       {/* En-tête */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             Déclarations TVA
           </h1>
           <Badge variant="outline" className="text-xs">
