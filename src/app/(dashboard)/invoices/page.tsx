@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoiceTable } from "@/components/invoices/invoice-table";
+import { InvoiceCard } from "@/components/shared/invoice-card";
 import { PaymentDialog } from "@/components/invoices/payment-dialog";
 import type { Invoice } from "@/types/invoice";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -185,14 +186,22 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Factures</h1>
           <p className="text-muted-foreground">{pagination.total} facture(s)</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.open("/api/export/invoices", "_blank")}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Exporter CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden sm:flex"
+            onClick={() => window.open("/api/export/invoices", "_blank")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter CSV
+          </Button>
+          <Button size="sm" onClick={() => router.push("/invoices/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Nouvelle facture</span>
+            <span className="sm:hidden">Nouveau</span>
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -203,8 +212,8 @@ export default function InvoicesPage() {
         </TabsList>
       </Tabs>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher une facture..."
@@ -214,7 +223,7 @@ export default function InvoicesPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="sm:w-52">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue />
           </SelectTrigger>
@@ -233,11 +242,24 @@ export default function InvoicesPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <InvoiceTable
-          invoices={invoices}
-          onAction={handleAction}
-          onDelete={handleDelete}
-        />
+        <>
+          <div className="hidden md:block">
+            <InvoiceTable
+              invoices={invoices}
+              onAction={handleAction}
+              onDelete={handleDelete}
+            />
+          </div>
+          <div className="md:hidden space-y-3">
+            {invoices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+                <p className="text-muted-foreground">Aucune facture pour le moment</p>
+              </div>
+            ) : (
+              invoices.map((inv) => <InvoiceCard key={inv.id} invoice={inv} />)
+            )}
+          </div>
+        </>
       )}
 
       {pagination.totalPages > 1 && (

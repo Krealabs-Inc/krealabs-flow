@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { QuoteTable } from "@/components/quotes/quote-table";
+import { QuoteCard } from "@/components/shared/quote-card";
 import type { Quote } from "@/types/quote";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
@@ -137,6 +138,7 @@ export default function QuotesPage() {
           <Button
             variant="outline"
             size="sm"
+            className="hidden sm:flex"
             onClick={() => window.open("/api/export/quotes", "_blank")}
           >
             <Download className="mr-2 h-4 w-4" />
@@ -149,8 +151,8 @@ export default function QuotesPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher un devis..."
@@ -160,7 +162,7 @@ export default function QuotesPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="sm:w-48">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue />
           </SelectTrigger>
@@ -179,11 +181,24 @@ export default function QuotesPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <QuoteTable
-          quotes={quotes}
-          onAction={handleAction}
-          onDelete={handleDelete}
-        />
+        <>
+          <div className="hidden md:block">
+            <QuoteTable
+              quotes={quotes}
+              onAction={handleAction}
+              onDelete={handleDelete}
+            />
+          </div>
+          <div className="md:hidden space-y-3">
+            {quotes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+                <p className="text-muted-foreground">Aucun devis pour le moment</p>
+              </div>
+            ) : (
+              quotes.map((q) => <QuoteCard key={q.id} quote={q} />)
+            )}
+          </div>
+        </>
       )}
 
       {pagination.totalPages > 1 && (

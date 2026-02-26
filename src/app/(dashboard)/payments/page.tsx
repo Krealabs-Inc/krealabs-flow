@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PaymentTable } from "@/components/payments/payment-table";
+import { PaymentCard } from "@/components/shared/payment-card";
 import type { Payment } from "@/types/payment";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
@@ -111,6 +112,7 @@ export default function PaymentsPage() {
         <Button
           variant="outline"
           size="sm"
+          className="hidden sm:flex"
           onClick={() => window.open("/api/export/payments", "_blank")}
         >
           <Download className="mr-2 h-4 w-4" />
@@ -118,9 +120,9 @@ export default function PaymentsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <Select value={methodFilter} onValueChange={setMethodFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="sm:w-52">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue />
           </SelectTrigger>
@@ -133,17 +135,17 @@ export default function PaymentsPage() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Du</span>
+          <span className="text-sm text-muted-foreground shrink-0">Du</span>
           <Input
             type="date"
-            className="w-40"
+            className="flex-1 sm:w-40"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
           />
-          <span className="text-sm text-muted-foreground">au</span>
+          <span className="text-sm text-muted-foreground shrink-0">au</span>
           <Input
             type="date"
-            className="w-40"
+            className="flex-1 sm:w-40"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
           />
@@ -155,7 +157,20 @@ export default function PaymentsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <PaymentTable payments={payments} onRefund={handleRefund} />
+        <>
+          <div className="hidden md:block">
+            <PaymentTable payments={payments} onRefund={handleRefund} />
+          </div>
+          <div className="md:hidden space-y-3">
+            {payments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+                <p className="text-muted-foreground">Aucun paiement pour le moment</p>
+              </div>
+            ) : (
+              payments.map((p) => <PaymentCard key={p.id} payment={p} />)
+            )}
+          </div>
+        </>
       )}
 
       {pagination.totalPages > 1 && (

@@ -235,42 +235,42 @@ export default function ClientDetailPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/clients")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {client.companyName}
-            </h1>
-            {client.legalName && (
-              <p className="text-muted-foreground">{client.legalName}</p>
-            )}
-          </div>
+      <div className="flex items-start gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0 mt-0.5"
+          onClick={() => router.push("/clients")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">
+            {client.companyName}
+          </h1>
+          {client.legalName && (
+            <p className="text-muted-foreground truncate">{client.legalName}</p>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => router.push(`/clients/${client.id}/edit`)}
           >
             <Pencil className="mr-2 h-4 w-4" />
-            Modifier
+            <span className="hidden sm:inline">Modifier</span>
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Supprimer
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="info" onValueChange={(v) => v !== "info" && loadDocs()}>
-        <TabsList className="grid w-full grid-cols-5">
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-5 min-w-[400px]">
           <TabsTrigger value="info">Informations</TabsTrigger>
           <TabsTrigger value="quotes">
             <FileText className="mr-1.5 h-3.5 w-3.5" />
@@ -289,6 +289,7 @@ export default function ClientDetailPage() {
             Contrats
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* ── Info Tab ── */}
         <TabsContent value="info" className="space-y-4">
@@ -424,8 +425,8 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full min-w-[500px] text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -554,8 +555,8 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full min-w-[500px] text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -648,8 +649,8 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full min-w-[500px] text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -743,8 +744,8 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full min-w-[500px] text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">

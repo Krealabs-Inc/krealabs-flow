@@ -128,7 +128,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
+    <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
       <div />
 
       <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export function Header() {
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{displayName}</span>
+                <span className="hidden sm:inline text-sm font-medium">{displayName}</span>
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>

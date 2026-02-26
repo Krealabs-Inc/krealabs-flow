@@ -159,30 +159,31 @@ export default function QuoteDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
+            className="shrink-0 mt-0.5"
             onClick={() => router.push("/quotes")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight font-mono">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-mono">
                 {quote.quoteNumber}
               </h1>
               <QuoteStatusBadge status={quote.status} />
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground truncate">
               {client?.companyName}
               {quote.reference && ` — ${quote.reference}`}
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={handleDownloadPdf}
@@ -246,7 +247,7 @@ export default function QuoteDetailPage() {
       </div>
 
       {/* Infos */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
