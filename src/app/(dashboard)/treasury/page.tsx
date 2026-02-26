@@ -331,7 +331,7 @@ export default function TreasuryPage() {
           <Skeleton className="h-9 w-40" />
           <Skeleton className="mt-1 h-4 w-52" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -372,7 +372,7 @@ export default function TreasuryPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Encaissé ce mois"
           value={summary.receivedThisMonth}
