@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContractTable } from "@/components/contracts/contract-table";
+import { ContractCard } from "@/components/shared/contract-card";
 import type { Contract } from "@/types/contract";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { PaginatedResponse } from "@/types";
@@ -137,8 +138,8 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher un contrat..."
@@ -148,7 +149,7 @@ export default function ContractsPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="sm:w-52">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue />
           </SelectTrigger>
@@ -167,11 +168,24 @@ export default function ContractsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <ContractTable
-          contracts={contracts}
-          onAction={handleAction}
-          onDelete={handleDelete}
-        />
+        <>
+          <div className="hidden md:block">
+            <ContractTable
+              contracts={contracts}
+              onAction={handleAction}
+              onDelete={handleDelete}
+            />
+          </div>
+          <div className="md:hidden space-y-3">
+            {contracts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+                <p className="text-muted-foreground">Aucun contrat pour le moment</p>
+              </div>
+            ) : (
+              contracts.map((c) => <ContractCard key={c.id} contract={c} />)
+            )}
+          </div>
+        </>
       )}
 
       {pagination.totalPages > 1 && (
