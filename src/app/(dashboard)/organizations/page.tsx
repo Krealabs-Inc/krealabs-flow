@@ -122,17 +122,18 @@ export default function OrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mes entreprises</h1>
-          <p className="text-muted-foreground">
-            Gérez vos différentes structures juridiques. Les clients sont partagés entre toutes.
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Mes entreprises</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Gérez vos différentes structures juridiques.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/organizations/new">
             <Plus className="mr-2 h-4 w-4" />
-            Nouvelle entreprise
+            <span className="hidden sm:inline">Nouvelle entreprise</span>
+            <span className="sm:hidden">Nouveau</span>
           </Link>
         </Button>
       </div>
