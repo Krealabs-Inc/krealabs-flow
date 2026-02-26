@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectTable } from "@/components/projects/project-table";
+import { ProjectCard } from "@/components/shared/project-card";
 import { projectStatusLabels } from "@/types/project";
 import type { Project } from "@/types/project";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -101,8 +102,8 @@ export default function ProjectsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher un projet..."
@@ -112,7 +113,7 @@ export default function ProjectsPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="sm:w-52">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue />
           </SelectTrigger>
@@ -132,7 +133,20 @@ export default function ProjectsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
         </div>
       ) : (
-        <ProjectTable projects={projects} onDelete={handleDelete} />
+        <>
+          <div className="hidden md:block">
+            <ProjectTable projects={projects} onDelete={handleDelete} />
+          </div>
+          <div className="md:hidden space-y-3">
+            {projects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+                <p className="text-muted-foreground">Aucun projet pour le moment</p>
+              </div>
+            ) : (
+              projects.map((p) => <ProjectCard key={p.id} project={p} />)
+            )}
+          </div>
+        </>
       )}
 
       {pagination.totalPages > 1 && (
