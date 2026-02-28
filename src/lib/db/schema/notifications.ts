@@ -7,7 +7,6 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
-import { users } from "./users";
 
 export const notifications = pgTable(
   "notifications",
@@ -16,9 +15,7 @@ export const notifications = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id),
+    userId: varchar("user_id", { length: 255 }).notNull(),
 
     title: varchar("title", { length: 255 }).notNull(),
     message: text("message"),

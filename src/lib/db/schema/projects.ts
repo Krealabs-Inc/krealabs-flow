@@ -11,7 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { clients } from "./clients";
-import { users } from "./users";
 import { projectStatusEnum } from "./enums";
 
 export const projects = pgTable(
@@ -37,7 +36,7 @@ export const projects = pgTable(
     }),
 
     notes: text("notes"),
-    createdBy: uuid("created_by").references(() => users.id),
+    createdBy: varchar("created_by", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

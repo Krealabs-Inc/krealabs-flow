@@ -14,7 +14,6 @@ import {
 import { organizations } from "./organizations";
 import { clients } from "./clients";
 import { projects } from "./projects";
-import { users } from "./users";
 import { templates } from "./templates";
 import { quoteStatusEnum } from "./enums";
 
@@ -76,7 +75,7 @@ export const quotes = pgTable(
 
     issuingOrgId: uuid("issuing_org_id").references(() => organizations.id),
 
-    createdBy: uuid("created_by").references(() => users.id),
+    createdBy: varchar("created_by", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

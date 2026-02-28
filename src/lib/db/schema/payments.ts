@@ -10,7 +10,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { invoices } from "./invoices";
-import { users } from "./users";
 import { paymentStatusEnum, paymentMethodEnum } from "./enums";
 
 export const payments = pgTable(
@@ -34,7 +33,7 @@ export const payments = pgTable(
 
     refundOf: uuid("refund_of"),
 
-    createdBy: uuid("created_by").references(() => users.id),
+    createdBy: varchar("created_by", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

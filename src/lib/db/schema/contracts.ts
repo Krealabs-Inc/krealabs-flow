@@ -12,7 +12,6 @@ import {
 import { organizations } from "./organizations";
 import { clients } from "./clients";
 import { projects } from "./projects";
-import { users } from "./users";
 import { contractStatusEnum, billingFrequencyEnum } from "./enums";
 
 export const contracts = pgTable("contracts", {
@@ -52,7 +51,7 @@ export const contracts = pgTable("contracts", {
   terms: text("terms"),
   pdfUrl: varchar("pdf_url", { length: 500 }),
 
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: varchar("created_by", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

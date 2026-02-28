@@ -8,7 +8,6 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
-import { users } from "./users";
 import { templateTypeEnum } from "./enums";
 
 export const templates = pgTable("templates", {
@@ -26,7 +25,7 @@ export const templates = pgTable("templates", {
 
   isDefault: boolean("is_default").default(false),
 
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: varchar("created_by", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

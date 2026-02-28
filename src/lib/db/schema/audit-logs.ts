@@ -7,8 +7,8 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
+// Note: user_id stores the Stack Auth user ID (varchar), not a FK to the internal users table
 import { organizations } from "./organizations";
-import { users } from "./users";
 import { auditActionEnum } from "./enums";
 
 export const auditLogs = pgTable(
@@ -18,7 +18,7 @@ export const auditLogs = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id),
-    userId: uuid("user_id").references(() => users.id),
+    userId: varchar("user_id", { length: 255 }),
 
     action: auditActionEnum("action").notNull(),
     entityType: varchar("entity_type", { length: 50 }).notNull(),
